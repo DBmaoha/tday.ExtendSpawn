@@ -22,7 +22,8 @@ const float AMPED_WEAPONS_LENGTH = 30.0
 
 const int MAPHACK_PULSE_COUNT = 4
 const float MAPHACK_PULSE_DELAY = 2.0
-const float MAPHACK_PULSE_LENGTH = 0.5
+
+int count = 2
 
 struct
 {
@@ -59,6 +60,7 @@ void function BurnMeter_Init()
 	BurnMeter_SetBoostLimit( "burnmeter_ap_turret_weapon", 3 )
 	BurnMeter_SetBoostLimit( "burnmeter_at_turret_weapon", 3 )
 	BurnMeter_SetBoostLimit( "burnmeter_holopilot_nova", 3 )
+	BurnMeter_SetBoostLimit( "burnmeter_radar_jammer", 3 )
 
 	// setup player callbacks
 	AddCallback_GameStateEnter( eGameState.Playing, InitBurncardsForIntroPlayers )
@@ -130,9 +132,11 @@ string function GetSelectedBurncardRefFromWeaponOrPlayer( entity weapon, entity 
 		// this does crash with the burnmeter_doublexp mod, but who cares, it doesn't get hit normally
 		if ( weapon.GetWeaponClassName() == "mp_ability_burncardweapon" )
 		{
-			foreach ( string mod in weapon.GetMods() )
-				if ( mod.find( "burnmeter_" ) == 0 )
-					return mod
+			foreach ( string mod in weapon.GetMods() ){
+                if ( mod.find( "burnmeter_" ) == 0 )
+                    return mod
+            }
+
 		}
 		// determine via weapon name in the case of stuff like holopilot etc
 		else
@@ -155,10 +159,16 @@ string function GetSelectedBurncardRefFromWeaponOrPlayer( entity weapon, entity 
 
 				case "mp_ability_turretweapon":
 					// turret has 2 burncards, antititan and antipilot
+					/*
 					if( weapon.HasMod( "burnmeter_at_turret_weapon" ) || weapon.HasMod( "burnmeter_at_turret_weapon_inf" ) )
 						return "burnmeter_at_turret_weapon"
 					else
-						return "burnmeter_ap_turret_weapon"
+                        return "burnmeter_ap_turret_weapon"
+                    */
+					if( weapon.HasMod( "burnmeter_at_turret_weapon" ) || weapon.HasMod( "burnmeter_at_turret_weapon_inf" ) )
+						return "burnmeter_at_turret_weapon"
+					else
+                        return "burnmeter_at_turret_weapon"
 
 				// note: cloak and stim both have burn_card_weapon_mod mods, but they aren't used and don't call burncard code at all, likely for tf1 infinite stim/cloak burncards?
 
@@ -267,6 +277,18 @@ void function UseBurnCardWeaponInCriticalSection( entity weapon, entity ownerPla
 
 void function BurnMeter_GiveRewardDirect( entity player, string itemRef )
 {
+	if( itemRef == "burnmeter_ap_turret_weapon" )
+		itemRef = "burnmeter_at_turret_weapon"
+    if( count != 0 && itemRef == "burnmeter_phase_rewind" )
+    {
+    	itemRef = "burnmeter_emergency_battery"
+    	count = RandomInt(2)
+    }
+    if( count == 0 && itemRef == "burnmeter_phase_rewind" )
+    {
+    	itemRef = "burnmeter_nuke_titan"
+    	count = RandomInt(2)
+    }
 	PlayerInventory_PushInventoryItemByBurnRef( player, itemRef )
 	Remote_CallFunction_Replay( player, "ServerCallback_RewardReadyMessage", player.s.respawnTime )
 }
@@ -294,23 +316,57 @@ void function PlayerUsesAmpedWeaponsBurncardThreaded( entity player )
 	//weapons.extend( player.GetOffhandWeapons() ) // idk? unsure of vanilla behaviour here
 	foreach ( entity weapon in weapons )
 	{
-		if( weapon.GetWeaponPrimaryClipCountMax() > 0 )
-			weapon.SetWeaponPrimaryClipCount( weapon.GetWeaponPrimaryClipCountMax() ) // kind of a fix to get ammo to full, cba to give new weapon
-
 		weapon.RemoveMod( "silencer" ) // both this and the burnmod will override firing fx, if a second one overrides this we crash
 		foreach ( string mod in GetWeaponBurnMods( weapon.GetWeaponClassName() ) )
 		{
-			// catch incompatibilities just in case
-			try
+			//Hemlok Starburst
+			if( weapon.HasMod( "starburst" ) )
 			{
-				weapon.AddMod( mod )
+				WaitFrame()
+				weapon.RemoveMod( "starburst" )
+				WaitFrame()
+				weapon.AddMod( "burn_mod_hemlok_starburst" )
 			}
-			catch( ex )
+			if( weapon.HasMod( "starburst_extended" ) )
 			{
-				weapons.removebyvalue( weapon )
+				WaitFrame()
+				weapon.RemoveMod( "starburst_extended" )
+				WaitFrame()
+				weapon.AddMod( "burn_mod_hemlok_starburst_extended" )
+			}
+
+			//Devotion Turbocharger
+			if( weapon.HasMod( "turbocharger" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "turbocharger" )
+				WaitFrame()
+				weapon.AddMod( "burn_mod_esaw_turbocharger" )
+			}
+			if( weapon.HasMod( "turbocharger_extended" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "turbocharger_extended" )
+				WaitFrame()
+				weapon.AddMod( "burn_mod_esaw_turbocharger_extended" )
+			}
+
+			// catch incompatibilities just in case
+			//Others
+			if( weapon.GetWeaponClassName() != "mp_weapon_hemlok" && weapon.GetWeaponClassName() != "mp_weapon_esaw" )
+			{
+				try
+				{
+					weapon.AddMod( mod )
+				}
+				catch( ex )
+				{
+					weapons.removebyvalue( weapon )
+				}
 			}
 		}
 
+		
 		// needed to display amped weapon time left
 		weapon.SetScriptFlags0( weapon.GetScriptFlags0() | WEAPONFLAG_AMPED )
 		weapon.SetScriptTime0( Time() + AMPED_WEAPONS_LENGTH )
@@ -325,7 +381,45 @@ void function PlayerUsesAmpedWeaponsBurncardThreaded( entity player )
 			continue
 
 		foreach ( string mod in GetWeaponBurnMods( weapon.GetWeaponClassName() ) )
-			weapon.RemoveMod( mod )
+		{
+			//Hemlok Starburst
+			if( weapon.HasMod( "burn_mod_hemlok_starburst" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "burn_mod_hemlok_starburst" )
+				WaitFrame()
+				weapon.AddMod( "starburst" )
+			}
+			if( weapon.HasMod( "burn_mod_hemlok_starburst_extended" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "burn_mod_hemlok_starburst_extended" )
+				WaitFrame()
+				weapon.AddMod( "starburst_extended" )
+			}
+
+			//Devotion Turbocharger
+			if( weapon.HasMod( "burn_mod_esaw_turbocharger" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "burn_mod_esaw_turbocharger" )
+				WaitFrame()
+				weapon.AddMod( "turbocharger" )
+			}
+			if( weapon.HasMod( "burn_mod_esaw_turbocharger_extended" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "burn_mod_esaw_turbocharger_extended" )
+				WaitFrame()
+				weapon.AddMod( "turbocharger_extended" )
+			}
+
+			//Others
+			if( weapon.GetWeaponClassName() != "mp_weapon_hemlok" && weapon.GetWeaponClassName() != "mp_weapon_esaw" )
+			{
+				weapon.RemoveMod( mod )
+			}
+		}
 
 		weapon.SetScriptFlags0( weapon.GetScriptFlags0() & ~WEAPONFLAG_AMPED )
 	}
@@ -334,8 +428,48 @@ void function PlayerUsesAmpedWeaponsBurncardThreaded( entity player )
 void function RemoveAmpedWeaponsForTitanPilot( entity player, entity titan )
 {
 	foreach ( entity weapon in player.GetMainWeapons() )
+	{
 		foreach ( string mod in GetWeaponBurnMods( weapon.GetWeaponClassName() ) )
-			weapon.RemoveMod( mod )
+		{
+			//Hemlok Starburst
+			if( weapon.HasMod( "burn_mod_hemlok_starburst" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "burn_mod_hemlok_starburst" )
+				WaitFrame()
+				weapon.AddMod( "starburst" )
+			}
+			if( weapon.HasMod( "burn_mod_hemlok_starburst_extended" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "burn_mod_hemlok_starburst_extended" )
+				WaitFrame()
+				weapon.AddMod( "starburst_extended" )
+			}
+
+			//Devotion Turbocharger
+			if( weapon.HasMod( "burn_mod_esaw_turbocharger" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "burn_mod_esaw_turbocharger" )
+				WaitFrame()
+				weapon.AddMod( "turbocharger" )
+			}
+			if( weapon.HasMod( "burn_mod_esaw_turbocharger_extended" ) )
+			{
+				WaitFrame()
+				weapon.RemoveMod( "burn_mod_esaw_turbocharger_extended" )
+				WaitFrame()
+				weapon.AddMod( "turbocharger_extended" )
+			}
+
+			//Others
+			if( weapon.GetWeaponClassName() != "mp_weapon_hemlok" && weapon.GetWeaponClassName() != "mp_weapon_esaw" )
+			{
+				weapon.RemoveMod( mod )
+			}
+		}
+	}
 }
 
 void function PlayerUsesSmartPistolBurncard( entity player )
@@ -345,14 +479,17 @@ void function PlayerUsesSmartPistolBurncard( entity player )
 	if ( sidearms.len() > 1 )
 		player.TakeWeaponNow( sidearms[ 1 ].GetWeaponClassName() ) // take secondary weapon
 
-	player.GiveWeapon( "mp_weapon_smart_pistol" )
-	player.SetActiveWeaponByName( "mp_weapon_smart_pistol" )
+	player.GiveWeapon( "mp_weapon_shotgun_doublebarrel" )
+	player.SetActiveWeaponByName( "mp_weapon_shotgun_doublebarrel" )
 
 	// do we need to track the player losing smart pistol, then give their old weapon back? idk not implementing for now, check later
 }
 
 void function PlayerUsesRadarJammerBurncard( entity player )
 {
+	PlayerUsesHackedSpectreBurncard( player )
+	//PlayerUsesReaperfallBurncard( player )
+	/*
 	foreach ( entity otherPlayer in GetPlayerArray() )
 	{
 		MessageToPlayer( otherPlayer, eEventNotifications.BurnMeter_RadarJammerUsed, player )
@@ -360,6 +497,7 @@ void function PlayerUsesRadarJammerBurncard( entity player )
 		if ( otherPlayer.GetTeam() != player.GetTeam() )
 			StatusEffect_AddTimed( otherPlayer, eStatusEffect.minimap_jammed, 1.0, RADAR_JAM_TIME, RADAR_JAM_TIME )
 	}
+	*/
 }
 
 void function PlayerUsesMaphackBurncard( entity player )
@@ -370,78 +508,39 @@ void function PlayerUsesMaphackBurncard( entity player )
 void function PlayerUsesMaphackBurncardThreaded( entity player )
 {
 	player.EndSignal( "OnDestroy" )
-
-	// If the user disconnects, we need to clean up hanging sonar effects, so hold relevant data here.
-	int playerTeam = player.GetTeam()
-	bool cleanup = false
-	array<entity> entities, affectedEntities
-
-	OnThreadEnd(
-		function() : ( cleanup, playerTeam, affectedEntities )
-		{
-			if ( !cleanup ) // Map hack ended when sonar wasn't active, no cleanup needed
-				return
-			
-			foreach ( entity ent in affectedEntities )
-			{
-				if ( IsValid( ent ) )
-					SonarEnd( ent, playerTeam )
-			}
-			DecrementSonarPerTeam( playerTeam )
-		}
-	)
+	player.EndSignal( "OnDeath" )
 
 	// todo: potentially look into ScanMinimap in _passives for doing this better? boost is pretty likely based off it pretty heavily
 	for ( int i = 0; i < MAPHACK_PULSE_COUNT; i++ )
 	{
 		EmitSoundOnEntityOnlyToPlayer( player, player, "Burn_Card_Map_Hack_Radar_Pulse_V1_1P" )
-
-		entities = GetPlayerArray()
-		entities.extend( GetNPCArray() )
-		entities.extend( GetPlayerDecoyArray() )
-
-		IncrementSonarPerTeam( playerTeam )
-		foreach ( entity ent in entities )
+		array<entity> aliveplayers = GetPlayerArray()
+		foreach ( entity otherPlayer in GetPlayerArray() )
 		{
-			if ( !IsValid( ent ) ) // Not sure why we can get invalid entities at this point
-				continue
+			Remote_CallFunction_Replay( otherPlayer, "ServerCallback_SonarPulseFromPosition", player.GetOrigin().x, player.GetOrigin().y, player.GetOrigin().z, SONAR_GRENADE_RADIUS )
 
-			if ( ent.IsPlayer() )
+			if ( otherPlayer.GetTeam() != player.GetTeam() && aliveplayers.find(otherPlayer) != -1 && aliveplayers.find(player) != -1 )
 			{
-				if ( IsAlive( player ) )
-					Remote_CallFunction_Replay( ent, "ServerCallback_SonarPulseFromPosition", player.GetOrigin().x, player.GetOrigin().y, player.GetOrigin().z, SONAR_GRENADE_RADIUS )
-				
-				// Map Hack also gives radar on enemies for longer than the sonar duration.
-				if ( ent.GetTeam() == playerTeam )
-					thread ScanMinimap( ent, false, MAPHACK_PULSE_DELAY - 0.2 )
-			}
-
-			if ( ent.GetTeam() != playerTeam )
-			{
-				StatusEffect_AddTimed( ent, eStatusEffect.maphack_detected, 1.0, MAPHACK_PULSE_DELAY, 0.0 )
-				affectedEntities.append( ent )
-				SonarStart( ent, player.GetOrigin(), playerTeam, player )
+				StatusEffect_AddTimed( otherPlayer, eStatusEffect.maphack_detected, 1.0, MAPHACK_PULSE_DELAY / 2, 0.0 )
+				SonarStart( otherPlayer, player.GetOrigin(), player.GetTeam(), player )
+				IncrementSonarPerTeam( player.GetTeam() )
 			}
 		}
-		cleanup = true
-		wait MAPHACK_PULSE_LENGTH
-
-		DecrementSonarPerTeam( playerTeam )
-		// JFS - loop through entities that were explicitly given sonar in case they switched teams during the wait
-		foreach ( entity ent in affectedEntities )
-		{
-			if ( IsValid( ent ) )
-				SonarEnd( ent, playerTeam )
+		wait MAPHACK_PULSE_DELAY
+		foreach ( entity otherPlayer in GetPlayerArray() ) {
+			if ( otherPlayer.GetTeam() != player.GetTeam() && aliveplayers.find(otherPlayer) != -1 && aliveplayers.find(player) != -1 ) {
+				SonarEnd (otherPlayer, player.GetTeam() )
+				DecrementSonarPerTeam( player.GetTeam() )
+			}
 		}
-		cleanup = false
-		affectedEntities.clear()
-		wait MAPHACK_PULSE_DELAY - MAPHACK_PULSE_LENGTH
 	}
 }
 
 void function PlayerUsesPhaseRewindBurncard( entity player )
 {
-	thread PlayerUsesPhaseRewindBurncardThreaded( player )
+	PlayerUsesReaperfallBurncard( player )
+	//PlayerUsesHackedSpectreBurncard( player )
+	//thread PlayerUsesPhaseRewindBurncardThreaded( player )
 }
 
 void function PlayerUsesPhaseRewindBurncardThreaded( entity player )
@@ -475,12 +574,15 @@ void function PlayerUsesPhaseRewindBurncardThreaded( entity player )
 		mover.NonPhysicsRotateTo( positions[ i ].angles, PHASE_REWIND_PATH_SNAPSHOT_INTERVAL, 0, 0 )
 		wait PHASE_REWIND_PATH_SNAPSHOT_INTERVAL
 	}
-	player.SetVelocity( <0, 0, 0> )
+
+	// this isn't vanilla but it's cool lol, should prolly remove it tho
+	player.SetVelocity( -positions[ positions.len() - 1 ].velocity )
 }
 
 void function PlayerUsesNukeTitanBurncard( entity player )
 {
-	thread PlayerUsesNukeBurncardThreaded( player )
+	thread ReplacementTitan( player )
+	//PlayerUsesNukeBurncardThreaded( player )
 }
 
 void function PlayerUsesNukeBurncardThreaded( entity player )
@@ -545,9 +647,87 @@ void function PlayerUsesRodeoGrenadeBurncard( entity player )
 // unused burncard that's mentioned in a few areas and has a validiation function in sh_burnmeter ( BurnMeter_SummonReaperCanUse ), thought it'd be neat to add it
 void function PlayerUsesReaperfallBurncard( entity player )
 {
+	thread PlayerUsesReaperBurncardThreaded( player )
+	/*
 	Point spawnpoint = GetTitanReplacementPoint( player, false )
 	entity reaper = CreateSuperSpectre( player.GetTeam(), spawnpoint.origin, spawnpoint.angles )
 	DispatchSpawn( reaper )
 
 	thread SuperSpectre_WarpFall( reaper )
+	*/
+}
+
+void function PlayerUsesReaperBurncardThreaded( entity player )
+{
+	Point spawnpoint = GetTitanReplacementPoint( player, false )
+	entity spawnNpc = CreateNPC( "npc_super_spectre", player.GetTeam(), spawnpoint.origin, spawnpoint.angles );
+    SetSpawnOption_AISettings( spawnNpc, "npc_super_spectre_burnmeter");
+    DispatchSpawn( spawnNpc );
+	Remote_CallFunction_Replay( player, "ServerCallback_ReplacementTitanSpawnpoint", spawnpoint.origin.x, spawnpoint.origin.y, spawnpoint.origin.z, Time() + 1 ) //manually set time because i don't know how to get Reaper's WarpFall impact time
+
+	/*
+	int followBehavior = GetDefaultNPCFollowBehavior( spawnNpc )
+	spawnNpc.InitFollowBehavior( player, followBehavior )
+	spawnNpc.EnableBehavior( "Follow" )
+	*/
+	spawnNpc.SetBossPlayer( player )
+	spawnNpc.SetOwner( player )
+	Highlight_SetOwnedHighlight( spawnNpc, "friendly_ai" )
+	spawnNpc.EnableBehavior( "Follow" )
+	spawnNpc.SetTitle(player.GetPlayerName() + "'s pet")
+    thread SuperSpectre_WarpFall( spawnNpc )
+
+
+	//followbehavior stuff
+	NPCFollowsPlayer( spawnNpc, player )
+}
+
+void function PlayerUsesHackedSpectreBurncard( entity player )
+{
+	thread PlayerUsesHackedSpectreBurncardThreaded( player )
+}
+
+void function PlayerUsesHackedSpectreBurncardThreaded( entity player )
+{
+  Point spawnpoint = GetTitanReplacementPoint( player, false )
+  Remote_CallFunction_Replay( player, "ServerCallback_ReplacementTitanSpawnpoint", spawnpoint.origin.x, spawnpoint.origin.y, spawnpoint.origin.z, Time() + 5 )
+  int team = player.GetTeam()
+  entity pod = CreateDropPod( spawnpoint.origin, spawnpoint.angles )
+  string squadName = MakeSquadName( team, UniqueString( "ZiplineTable" ) )
+  array<entity> guys
+
+  SetTeam( pod, team )
+
+  InitFireteamDropPod( pod )
+
+  waitthread LaunchAnimDropPod( pod, "pod_testpath", spawnpoint.origin, spawnpoint.angles )
+
+  for (int i = 0; i < 4 ;i++ ) {
+    entity soldier = CreateNPC( "npc_spectre", team, spawnpoint.origin, spawnpoint.angles )
+
+    SetTeam( soldier, team )
+    //soldier.EnableNPCFlag( NPC_ALLOW_PATROL | NPC_ALLOW_INVESTIGATE | NPC_ALLOW_HAND_SIGNALS | NPC_ALLOW_FLEE )
+    //soldier.AssaultPoint(Vector(-487.158, 646.772, 960.031))
+    //soldier.AssaultSetFightRadius( 64 )
+	DispatchSpawn( soldier )
+	soldier.SetBossPlayer( player )
+	soldier.SetOwner( player )
+	Highlight_SetOwnedHighlight( soldier, "friendly_ai" )
+    SetSquad( soldier, squadName )
+    guys.append( soldier )
+  }
+
+  ActivateFireteamDropPod( pod, guys )
+
+  foreach ( guy in guys )
+  {
+    guy.EnableNPCFlag( NPC_ALLOW_PATROL | NPC_ALLOW_INVESTIGATE | NPC_ALLOW_HAND_SIGNALS | NPC_ALLOW_FLEE )
+	guy.AssaultSetGoalRadius( 50 )//set this extremely small so they can follow you around
+  }
+  //followbehavior stuff
+	foreach ( guy in guys )
+	{
+		//followbehavior stuff
+		NPCFollowsPlayer( guy, player )
+  	}
 }

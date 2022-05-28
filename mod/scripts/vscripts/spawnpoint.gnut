@@ -1,0 +1,208 @@
+untyped
+
+#if SERVER
+global function tday_SpawnPoints_Init
+
+global function PlayerSpawnArea
+global function DroppodSpawnArea
+global function PlayerInAreaThink
+
+array<string> OOBplayers = []
+global array<bool> checkingOOB = [false, false]
+
+const vector PLAYER_SPAWN_1 = < 1647.32, -13920.4, 406.377 >
+const float MLT_RADIUS_1 = 1500
+const vector PLAYER_SPAWN_2 = < 1537.49, -7283.81, 316.031 >   //**need changes
+const float MLT_RADIUS_2 = 1500
+const vector PLAYER_SPAWN_3 = < -5231.85, 7190.73, 1952.03 >   //**need changes
+const float MLT_RADIUS_3 = 1000
+const vector PLAYER_SPAWN_4 = < -6799.33, 14179.7, 2592.03 >   //**need changes
+const float MLT_RADIUS_4 = 250
+const vector PLAYER_SPAWN_5 = < 1989.37, 14171.2, 2536.03 >    //**need changes
+const float MLT_RADIUS_5 = 300
+
+#endif
+
+void function tday_SpawnPoints_Init()
+{
+    
+}
+
+#if SERVER
+Point function PlayerSpawnArea( int progress )
+{
+    switch( progress )
+    {
+        case 0:
+            return SearchHotDropPointFromArea( PLAYER_SPAWN_1, MLT_RADIUS_1 )
+        case 1:
+            return SearchHotDropPointFromArea( PLAYER_SPAWN_2, MLT_RADIUS_2 )
+        case 2:
+            return SearchHotDropPointFromArea( PLAYER_SPAWN_3, MLT_RADIUS_3 )
+        case 3:
+            return SearchPointFromArea( PLAYER_SPAWN_4, MLT_RADIUS_4 )
+        case 4:
+            return SearchPointFromArea( PLAYER_SPAWN_5, MLT_RADIUS_5 )
+    }
+    return SearchHotDropPointFromArea( PLAYER_SPAWN_1, MLT_RADIUS_1 )
+    /*
+    point 1 <1647.32, -13920.4, 406.377> radius = 1500
+
+    point 2 <1537.49, -7283.81, 316.031> radius = 1500
+
+    point 3 <-5231.85, 7190.73, 1952.03> radius = 1000
+
+    point 4 <-6799.33, 14179.7, 2592.03> radius = 250
+
+    point 5 <1989.37, 14171.2, 2536.03> radius = 300
+    */
+}
+
+Point function DroppodSpawnArea( int progress, int team )
+{
+    array<Point> nodes
+    if( team == TEAM_MILITIA )
+    {
+        switch( progress )
+        {
+            case 0:
+                return SearchHotDropPointFromArea( < 1648.31, -10298.8, 234.171 >, 1500 )
+            case 1:
+                nodes = [SearchHotDropPointFromArea( < 1653.26, -1733.88, 160.031 >, 200 ), SearchHotDropPointFromArea( < 1209.13, -160.671, 160.031 >, 200 )]
+                return nodes[ RandomInt( nodes.len() ) ]
+        }
+    }
+    else
+    {
+        switch( progress )
+        {
+            case 0:
+                nodes = [SearchHotDropPointFromArea( < 1653.26, -1733.88, 160.031 >, 200 ), SearchHotDropPointFromArea( < 1209.13, -160.671, 160.031 >, 200 )]
+                return nodes[ RandomInt( nodes.len() ) ]
+            case 1:
+                nodes = [SearchHotDropPointFromArea( < -3776.72, 3679.68, 208.031 >, 200 ), SearchHotDropPointFromArea( < -2189.72, 3261.42, 208.031 >, 200 )]
+                return nodes[ RandomInt( nodes.len() ) ]
+        }
+    }
+
+    return SearchPointFromArea( < 1648.31, -10298.8, 234.171 >, 1500 )
+
+
+    /*
+    point 1 <1648.31, -10298.8, 234.171> radius = 1500
+
+    point 1
+
+    point mlt 2.1 <1653.26, -1733.88, 160.031> radius = 200
+    point mlt 2.2 <1209.13, -160.671, 160.031> radius = 200
+
+    point imc 2.1 <-3776.72, 3679.68, 208.031> radius = 200
+    point imc 2.2 <-2189.72, 3261.42, 208.031> radius = 200
+    */
+}
+
+Point function SearchHotDropPointFromArea( vector center, float radius )
+{
+    vector pointmodi = center
+    vector result
+
+    result.x = RandomFloatRange( center.x - radius, center.x + radius ) 
+    result.y = RandomFloatRange( center.y - radius, center.y + radius )
+    result.z = center.z
+
+    return CalculateTitanReplacementPoint( result, result, < 0, 270, 0 > )
+}
+
+Point function SearchPointFromArea( vector center, float radius )
+{
+    Point point
+    vector pointmodi = center
+    vector result
+
+    result.x = RandomFloatRange( center.x - radius, center.x + radius )
+    result.y = RandomFloatRange( center.y - radius, center.y + radius )
+    result.z = center.z
+
+    point.origin = result
+    point.angles = < 0, 180, 0 >
+
+    return point
+}
+
+void function PlayerInAreaThink( int progress, int team )
+{
+    int index = team == TEAM_MILITIA ? 0 : 1
+    float radius
+    vector center
+    switch( progress )
+    {
+        case 0:
+            radius = 1500
+            center = PLAYER_SPAWN_1
+            break
+        case 1:
+            radius = 1500
+            center = PLAYER_SPAWN_2
+            break
+        case 2:
+            radius = 1000
+            center = PLAYER_SPAWN_3
+            break
+        case 3:
+            radius = 250
+            center = PLAYER_SPAWN_4
+            break
+        case 4:
+            radius = 300
+            center = PLAYER_SPAWN_5
+            break
+    }
+    if( !checkingOOB[index] )
+    {
+        checkingOOB[index] = true
+        while( true )
+        {
+            foreach( entity player in GetPlayerArrayOfTeam( team ) )
+            {
+                if( IsPlayerInArea( player, center, radius ) && OOBplayers.contains( player.GetUID() ) )
+                {
+                    thread PlayerInAreaWarning( player, center, radius )
+                    OOBplayers.append( player.GetUID() )
+                }
+            }
+            WaitFrame()
+            if( progress != harvesterDestoryed )
+            {
+                checkingOOB[index] = false
+                return
+            }
+        }
+    }
+}
+
+void function PlayerInAreaWarning( entity player, vector center, float radius )
+{
+    if( IsValid( player ) )
+    {
+        SendHudMessage( player, "已超出战斗区域，3s后若未及时返回将被处死", -1, 0.4, 255, 255, 0, 255, 0, 2, 0 )
+    }
+    wait 3
+    if( IsValid( player ) )
+    {
+        if( IsPlayerInArea( player, center, radius ) )
+            player.Die()
+    }
+    OOBplayers.removebyvalue( player.GetUID() )
+}
+
+bool function IsPlayerInArea( entity player, vector center, float radius )
+{
+    if( player.GetOrigin().x > center.x - radius && player.GetOrigin().x < center.x + radius )
+    {
+        if( player.GetOrigin().y > center.y - radius && player.GetOrigin().y < center.y + radius )
+            return true
+    }
+
+    return false
+}
+#endif
