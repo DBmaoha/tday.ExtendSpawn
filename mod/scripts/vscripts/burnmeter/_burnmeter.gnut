@@ -42,7 +42,8 @@ void function BurnMeter_Init()
 	// setup burncard use funcs
 	BurnReward_GetByRef( "burnmeter_amped_weapons" ).rewardAvailableCallback = PlayerUsesAmpedWeaponsBurncard
 	BurnReward_GetByRef( "burnmeter_smart_pistol" ).rewardAvailableCallback = PlayerUsesSmartPistolBurncard
-	BurnReward_GetByRef( "burnmeter_emergency_battery" ).rewardAvailableCallback = Burnmeter_EmergencyBattery
+	//BurnReward_GetByRef( "burnmeter_emergency_battery" ).rewardAvailableCallback = Burnmeter_EmergencyBattery
+	BurnReward_GetByRef( "burnmeter_emergency_battery" ).rewardAvailableCallback = PlayerUsesNukeTitanBurncard
 	BurnReward_GetByRef( "burnmeter_radar_jammer" ).rewardAvailableCallback = PlayerUsesRadarJammerBurncard
 	BurnReward_GetByRef( "burnmeter_maphack" ).rewardAvailableCallback = PlayerUsesMaphackBurncard
 	BurnReward_GetByRef( "burnmeter_phase_rewind" ).rewardAvailableCallback = PlayerUsesPhaseRewindBurncard
@@ -52,7 +53,7 @@ void function BurnMeter_Init()
 	BurnReward_GetByRef( "burnmeter_amped_weapons_permanent" ).rewardAvailableCallback = PlayerUsesPermanentAmpedWeaponsBurncard
 	BurnReward_GetByRef( "burnmeter_instant_battery" ).rewardAvailableCallback = Burnmeter_AmpedBattery
 	BurnReward_GetByRef( "burnmeter_rodeo_grenade" ).rewardAvailableCallback = PlayerUsesRodeoGrenadeBurncard
-	BurnReward_GetByRef( "burnmeter_nuke_titan" ).rewardAvailableCallback = PlayerUsesNukeTitanBurncard // unused in vanilla, fun though
+	//BurnReward_GetByRef( "burnmeter_nuke_titan" ).rewardAvailableCallback = PlayerUsesNukeTitanBurncard // unused in vanilla, fun though
 
 	BurnMeter_SetBoostRewardCount( "burnmeter_ticks", 2 )
 
@@ -581,7 +582,11 @@ void function PlayerUsesPhaseRewindBurncardThreaded( entity player )
 
 void function PlayerUsesNukeTitanBurncard( entity player )
 {
-	thread ReplacementTitan( player )
+	if (!player.IsTitan())
+		thread CreateTitanForPlayerAndHotdrop( player, GetTitanReplacementPoint( player, false ) )
+	Burnmeter_EmergencyBattery( player )
+	if( IsValid( player.GetOffhandWeapon(OFFHAND_INVENTORY) ) )
+		player.TakeOffhandWeapon( OFFHAND_INVENTORY )
 	//PlayerUsesNukeBurncardThreaded( player )
 }
 

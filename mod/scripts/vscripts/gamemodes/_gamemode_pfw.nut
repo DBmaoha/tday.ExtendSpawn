@@ -13,7 +13,11 @@ void function GamemodePFW_Init()
 
 	SetSpawnpointGamemodeOverride( "" )
 
+	Riff_ForceTitanAvailability( eTitanAvailability.Never )
+   	Riff_ForceBoostAvailability( eBoostAvailability.Disabled )
+
 	AddCallback_GameStateEnter( eGameState.Playing, OnPlaying )
+	AddCallback_GameStateEnter( eGameState.WinnerDetermined, OnWinnerDetermined )
 	AddCallback_OnPlayerRespawned( OnPlayerRespawned )
 
 	AiGameModes_SetGruntWeapons( [ "mp_weapon_car", "mp_weapon_vinson", "mp_weapon_sniper" ] )
@@ -32,6 +36,15 @@ void function OnPlaying()
 	thread SpawnIntroBatch_MLT()
 	thread SpawnIntroBatch_IMC()
 
+}
+
+void function OnWinnerDetermined()
+{
+	if( harvesterDestoryed >= 3 )
+	{
+		PlayFactionDialogueToTeam( "fortwar_matchLoss", TEAM_IMC )
+		PlayFactionDialogueToTeam( "fortwar_matchWin", TEAM_MILITIA )
+	}
 }
 
 void function OnPlayerRespawned( entity player )
@@ -84,14 +97,6 @@ void function Spawner_MLT( int team )
 
 	while( true )
 	{
-		if( harvesterDestoryed == 4 )
-		{
-			wait 1
-			PlayFactionDialogueToTeam( "fortwar_matchLoss", TEAM_IMC )
-			PlayFactionDialogueToTeam( "fortwar_matchWin", TEAM_MILITIA )
-			SetWinner( TEAM_MILITIA )
-			break
-		}
 		if( !(harvesterDestoryed == 4) )
 		{
 			// TODO: this should possibly not count scripted npc spawns, probably only the ones spawned by this script
@@ -157,6 +162,7 @@ void function SpawnerWeapons( int team )
 {
 	//svGlobal.levelEnt.EndSignal( "GameStateChanged" )
 
+	int index = team == TEAM_MILITIA ? 0 : 1
 	while( true )
 	{
 		wait 60
@@ -166,10 +172,10 @@ void function SpawnerWeapons( int team )
 			foreach( entity player in GetPlayerArray() )
 			{
 				if( IsValid(player) )
-					SendHudMessage(player, "正在運送補給艙",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
+					SendHudMessage(player, "正在運送補給艙\n使用补给舱可获得一次泰坦降落机会",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
 			}
 
-			Point node = DroppodSpawnArea( harvesterDestoryed, team )
+			Point node = DroppodSpawnArea( harvesterDestoryed+index, team )
 			waitthread AiGameModes_SpawnDropPodToGetWeapons( node.origin, node.angles )
 		}
 		else
@@ -246,6 +252,8 @@ void function SquadHandler( string squad )
 		while ( true )
 		{
 			guys = GetNPCArrayBySquad( squad )
+
+			point = harvesterpos[ harvesterDestoryed ]
 
 			foreach ( guy in guys )
 				guy.AssaultPoint( point )

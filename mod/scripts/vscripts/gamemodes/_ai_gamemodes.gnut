@@ -496,7 +496,7 @@ void function AiGameModes_SpawnDropPodToGetWeapons( vector pos, vector rot )
 void function AiGameModes_SpawnDropPodToGetWeapons_Threaded( vector pos, vector rot )
 {
 	usedplayer.clear()
-	wait 10
+	wait 7
 	entity pod = CreateDropPod( pos, <0,0,0> )
 	HighlightDropPod( pod )
 
@@ -505,7 +505,7 @@ void function AiGameModes_SpawnDropPodToGetWeapons_Threaded( vector pos, vector 
 	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
 	pod.SetUsable()
     pod.SetUsableByGroup( "pilot" )
-    pod.SetUsePrompts( "按住 %use% 以獲取武器", "按下 %use% 以獲取武器" )
+    pod.SetUsePrompts( "按住 %use% 以獲取获取泰坦", "按下 %use% 以獲取泰坦" )
     //AddCallback_OnUseEntity( pod , GiveAirDropWeapon )
     AddCallback_OnUseEntity( pod , GiveTitanAvability )
     
@@ -536,8 +536,13 @@ function GiveTitanAvability( pod, player )
 {
 	expect entity( player )
 
+	if( IsValid( player.GetOffhandWeapon(OFFHAND_INVENTORY) ) )
+	{
+		SendHudMessage(player, "您已經擁有一次泰坦降落",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
+		return
+	}
 	SendHudMessage(player, "於補給倉獲取一次泰坦降落機會",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
-	BurnMeter_GiveRewardDirect( player, "burnmeter_nuke_titan" )
+	player.GiveOffhandWeapon( "mp_ability_burncardweapon", OFFHAND_INVENTORY, ["burnmeter_emergency_battery", "burn_card_weapon_mod"] )
 	if( IsValid(pod) )
 		pod.Destroy()
 }
