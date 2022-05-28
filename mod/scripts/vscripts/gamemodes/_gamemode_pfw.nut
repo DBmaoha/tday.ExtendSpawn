@@ -17,7 +17,6 @@ void function GamemodePFW_Init()
    	Riff_ForceBoostAvailability( eBoostAvailability.Disabled )
 
 	AddCallback_GameStateEnter( eGameState.Playing, OnPlaying )
-	AddCallback_GameStateEnter( eGameState.WinnerDetermined, OnWinnerDetermined )
 	AddCallback_OnPlayerRespawned( OnPlayerRespawned )
 
 	AiGameModes_SetGruntWeapons( [ "mp_weapon_car", "mp_weapon_vinson", "mp_weapon_sniper" ] )
@@ -36,15 +35,6 @@ void function OnPlaying()
 	thread SpawnIntroBatch_MLT()
 	thread SpawnIntroBatch_IMC()
 
-}
-
-void function OnWinnerDetermined()
-{
-	if( harvesterDestoryed >= 3 )
-	{
-		PlayFactionDialogueToTeam( "fortwar_matchLoss", TEAM_IMC )
-		PlayFactionDialogueToTeam( "fortwar_matchWin", TEAM_MILITIA )
-	}
 }
 
 void function OnPlayerRespawned( entity player )
