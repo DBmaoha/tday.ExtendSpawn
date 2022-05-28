@@ -67,11 +67,11 @@ void function SpawnIntroBatch_IMC()
 	AiGameModes_SpawnHarvester( harvesterpos[0], TEAM_IMC )
 	thread HarvesterThink()
 	thread HarvesterAlarm()
-	thread CheckHarvesterStat()
 	wait 10
 
 	thread Spawner_IMC( TEAM_IMC )
 	thread SpawnerWeapons( TEAM_IMC )
+	thread CheckHarvesterStat()
 }
 
 // Populates the match
