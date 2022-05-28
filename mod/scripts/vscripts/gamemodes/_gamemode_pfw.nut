@@ -41,21 +41,15 @@ void function OnPlayerRespawned( entity player )
 {
 	Point point
 	if( player.GetTeam() == TEAM_MILITIA )
-		point = PlayerSpawnArea( harvesterDestoryed )
+		point = PlayerSpawnArea( harvesterDestoryed, TEAM_MILITIA )
 	if( player.GetTeam() == TEAM_IMC )
-		point = PlayerSpawnArea( harvesterDestoryed+1 )
+		point = PlayerSpawnArea( harvesterDestoryed, TEAM_IMC )
 
 	player.SetOrigin( point.origin )
 	player.SetAngles( point.angles )
 
-	thread OnPlayerRespawned_Threaded( player )
-}
-
-void function OnPlayerRespawned_Threaded( entity player )
-{
-	WaitFrame()
-	if( IsValid( player ) )
-		PlayerEarnMeter_SetMode( player, eEarnMeterMode.DISABLED )
+	player.SetShieldHealthMax( 100 )
+	player.SetShieldHealth( 100 )
 }
 
 //------------------------------------------------------
@@ -73,6 +67,7 @@ void function SpawnIntroBatch_IMC()
 	AiGameModes_SpawnHarvester( harvesterpos[0], TEAM_IMC )
 	thread HarvesterThink()
 	thread HarvesterAlarm()
+	thread CheckHarvesterStat()
 	wait 10
 
 	thread Spawner_IMC( TEAM_IMC )
@@ -102,7 +97,7 @@ void function Spawner_MLT( int team )
 
 			if( !checkingOOB[index] )
 			{
-				thread PlayerInAreaThink( harvesterDestoryed, team )
+				thread PlayerInAreaThink( harvesterDestoryed+1, team )
 			}
 		}
 		else
@@ -139,8 +134,6 @@ void function Spawner_IMC( int team )
 				thread PlayerInAreaThink( harvesterDestoryed, team )
 			}
 
-			thread CheckHarvesterStat()
-
 		}
 		else
 			break
@@ -151,8 +144,6 @@ void function Spawner_IMC( int team )
 void function SpawnerWeapons( int team )
 {
 	//svGlobal.levelEnt.EndSignal( "GameStateChanged" )
-
-	int index = team == TEAM_MILITIA ? 0 : 1
 	while( true )
 	{
 		wait 60
@@ -165,7 +156,7 @@ void function SpawnerWeapons( int team )
 					SendHudMessage(player, "正在運送補給艙\n使用补给舱可获得一次泰坦降落机会",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
 			}
 
-			Point node = DroppodSpawnArea( harvesterDestoryed+index, team )
+			Point node = DroppodSpawnArea( harvesterDestoryed, team )
 			waitthread AiGameModes_SpawnDropPodToGetWeapons( node.origin, node.angles )
 		}
 		else
@@ -179,28 +170,32 @@ void function CheckHarvesterStat()
 {
 	while(true)
 	{
-		if( IsValid(fd_harvester.harvester) || harvesterDestoryed == 4 )
+		if( harvesterDestoryed == 4 )
 			return
-		else if( !IsValid(fd_harvester.harvester) )
+		else
 		{
-			foreach( entity player in GetPlayerArrayOfTeam( TEAM_MILITIA ) )
+			if( IsValid(fd_harvester.harvester) )
+				continue
+			if( !IsValid(fd_harvester.harvester) )
 			{
-				ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀！\", \"出生點已推進，繼續進攻！\" )" )
-			}
-			AddTeamScore( TEAM_MILITIA, 1 )
-			harvesterDestoryed += 1
+				foreach( entity player in GetPlayerArrayOfTeam( TEAM_MILITIA ) )
+				{
+					ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀！\", \"出生點已推進，繼續進攻！\" )" )
+				}
+				AddTeamScore( TEAM_MILITIA, 1 )
+				harvesterDestoryed += 1
 
-			WaitFrame()
-			if( !(harvesterDestoryed == 4) )
-				AiGameModes_SpawnHarvester( harvesterpos[harvesterDestoryed], TEAM_IMC )
-			thread HarvesterThink()
-			thread HarvesterAlarm()
-			foreach( entity player in GetPlayerArrayOfTeam( TEAM_IMC ) )
-			{
-				ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀\", \"出生點已後撤，保持防禦\" )" )
+				WaitFrame()
+				if( !(harvesterDestoryed == 4) )
+					AiGameModes_SpawnHarvester( harvesterpos[harvesterDestoryed], TEAM_IMC )
+				thread HarvesterThink()
+				thread HarvesterAlarm()
+				foreach( entity player in GetPlayerArrayOfTeam( TEAM_IMC ) )
+				{
+					ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀\", \"出生點已後撤，保持防禦\" )" )
+				}
+				initialplayercount = GetPlayerArray().len()
 			}
-			initialplayercount = GetPlayerArray().len()
-			return
 		}
 		WaitFrame()
 	}
@@ -213,6 +208,9 @@ void function SquadHandler( string squad )
 	array< entity > guys
 
 	vector point
+
+	vector point_mlt
+	vector point_imc
 
 	// We need to try catch this since some dropships fail to spawn
 	try
@@ -243,10 +241,20 @@ void function SquadHandler( string squad )
 		{
 			guys = GetNPCArrayBySquad( squad )
 
-			point = harvesterpos[ harvesterDestoryed ]
+			point_mlt = harvesterpos[ harvesterDestoryed ]
+			Point imchandler = DroppodSpawnArea( harvesterDestoryed, TEAM_MILITIA )
+			point_imc = imchandler.origin
 
 			foreach ( guy in guys )
-				guy.AssaultPoint( point )
+			{
+				if( guy.GetTeam() == TEAM_MILITIA )
+					guy.AssaultPoint( point_mlt )
+				else
+				{
+					guy.AssaultPoint( point_imc )
+					guy.AssaultSetGoalRadius( 4000 )
+				}
+			}
 
 			wait 15
 		}
