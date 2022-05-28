@@ -511,7 +511,7 @@ void function AiGameModes_SpawnDropPodToGetWeapons_Threaded( vector pos, vector 
     
     wait 30
     if( IsValid(pod) )
-    	pod.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
+    	pod.Destroy()
 }
 
 function GiveAirDropWeapon( pod , player )
