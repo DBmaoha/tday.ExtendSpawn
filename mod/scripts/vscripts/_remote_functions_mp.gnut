@@ -444,6 +444,9 @@ function RemoteFunctions_Init()
 #if CLIENT
 			CLFD_RegisterNetworkFunctions()
 #endif
+		case "pfw":
+			RegisterNetworkedVariable( "FD_harvesterInvulTime", SNDC_GLOBAL, SNVT_TIME, 0 )
+			RegisterNetworkedVariable( "FD_activeHarvester", SNDC_GLOBAL, SNVT_ENTITY )
 			break
 	}
 
@@ -928,8 +931,6 @@ function RemoteFunctions_Init()
 			ClBurnMeter_RegisterNetworkFunctions()
 		}
 	#endif
-	
-	InitCustomNetworkVars()
 
 	Remote_EndRegisteringFunctions()
 	_RegisteringFunctions = false

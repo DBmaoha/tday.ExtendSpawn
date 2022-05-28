@@ -94,18 +94,18 @@ void function ActivateFireteamDropPod( entity pod, array<entity> guys )
 	thread DropPodActiveThink( pod )
 }
 
-void function DropPodActiveThink( entity pod )
+void function DropPodActiveThink( entity pod, int destructionTime = 10 )
 {
 	DroppodStruct droppodData = file.droppodTable[ pod ]
 
 	OnThreadEnd(
-		function() : ( pod )
+		function() : ( pod, destructionTime )
 		{
 			DroppodStruct droppodData = file.droppodTable[pod]
 			if ( droppodData.flags & eDropPodFlag.DISSOLVE_AFTER_DISEMBARKS )
 				CleanupFireteamPod( pod )
 			else
-				delaythread( 10 ) CleanupFireteamPod( pod )
+				delaythread( destructionTime ) CleanupFireteamPod( pod )
 		}
 	)
 

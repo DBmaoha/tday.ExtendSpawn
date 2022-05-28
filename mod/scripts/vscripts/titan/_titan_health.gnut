@@ -412,7 +412,7 @@ bool function HandleKillshot( entity ent, var damageInfo, TitanDamage titanDamag
 			thread TitanEjectPlayer( ent )
 		}
 
-		return
+		return true
 	}
 	#endif
 

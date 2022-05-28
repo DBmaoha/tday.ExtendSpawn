@@ -1,0 +1,55 @@
+playlists
+{
+	Gamemodes
+	{
+		pfw
+		{
+			inherit defaults
+			vars
+			{
+				name "#PL_pfw"
+				lobbytitle #PL_pfw_lobby
+				description #PL_pfw_desc
+				hint #PL_pfw_hint
+				abbreviation #PL_pfw_abbr
+				scorelimit 4
+				riff_allow_npcs 1
+				color		"88 220 151 255"
+
+				gamemode_score_hint #GAMEMODE_SCORE_HINT_TDM
+				gamemode_bullet_001	#GAMEMODE_BULLET_TDM_001
+				gamemode_bullet_002	#GAMEMODE_BULLET_TDM_002
+				gamemode_bullet_003	#GAMEMODE_BULLET_TDM_003
+				gamemode_bullet_004	#GAMEMODE_BULLET_TDM_004
+				gamemode_bullet_005	#GAMEMODE_BULLET_TDM_005
+			}
+		}
+	}
+	Playlists
+	{
+		pfw
+		{
+			inherit defaults
+			vars
+			{
+				name "#PL_pfw"
+				lobbytitle #PL_pfw_lobby
+				description #PL_pfw_desc
+				abbreviation #PL_pfw_abbr
+				image lts
+				mixtape_slot 0
+				visible 1
+			}
+			gamemodes
+			{
+				pfw
+				{
+					maps
+					{
+						mp_tday 1
+					}
+				}
+			}
+		}
+	}	
+}

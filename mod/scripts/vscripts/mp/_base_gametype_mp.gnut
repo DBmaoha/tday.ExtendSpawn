@@ -420,7 +420,14 @@ void function DecideRespawnPlayer( entity player )
 
 void function RespawnAsPilot( entity player )
 {
-	player.RespawnPlayer( FindSpawnPoint( player, false, ( ShouldStartSpawn( player ) || Flag( "ForceStartSpawn" ) ) && !IsFFAGame() ) )
+	if( GameRules_GetGameMode() == "pfw" )
+	{
+		entity point = CreateEntity( "script_mover" )
+		point.SetOrigin( < 591.31, -15547.8, 680.535 > )
+		player.RespawnPlayer( point )
+	}
+	else
+		player.RespawnPlayer( FindSpawnPoint( player, false, ( ShouldStartSpawn( player ) || Flag( "ForceStartSpawn" ) ) && !IsFFAGame() ) )
 }
 
 void function RespawnAsTitan( entity player, bool manualPosition = false )
@@ -484,12 +491,7 @@ void function RespawnAsTitan( entity player, bool manualPosition = false )
 	player.RespawnPlayer( null ) // spawn player as pilot so they get their pilot loadout on embark
 	player.SetOrigin( titan.GetOrigin() )
 	
-	// don't make player titan when entity batteryContainer is not valid.
-	// This will prevent a servercrash that sometimes occur when evac is disabled and somebody is calling a titan in the defeat screen.
-	if( IsValid( titan.GetTitanSoul().soul.batteryContainer ) )
-		PilotBecomesTitan( player, titan ) // make player titan
-	else
-		print( "batteryContainer is not a valid entity in RespawnAsTitan(). Skipping PilotBecomesTitan()." )
+	PilotBecomesTitan( player, titan ) // make player titan
 }
 
 

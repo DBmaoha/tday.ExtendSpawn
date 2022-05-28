@@ -5,6 +5,8 @@ global function DebugTitanfall
 global function TitanFindDropNodes
 global function TitanHulldropSpawnpoint
 
+global function CalculateTitanReplacementPoint
+
 global const TITANDROP_LOS_DIST = 2000 // 2D distance at which we do the line of sight check to see where the player wants to call in the titan
 global const TITANDROP_MIN_FOV = 10
 global const TITANDROP_MAX_FOV = 80

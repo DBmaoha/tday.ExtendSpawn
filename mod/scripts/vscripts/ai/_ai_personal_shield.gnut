@@ -2,7 +2,7 @@ global function AiPersonalShield
 global function ActivatePersonalShield
 const FX_DRONE_SHIELD_WALL_HUMAN 	= $"P_drone_shield_wall_sm"
 const SHIELD_BREAK_FX = $"P_xo_armor_break_CP"
-const SHIELD_HEALTH = 620
+const SHIELD_HEALTH = 300
 global const AI_PERSONAL_SHIELD_PAIN_SHIELD_STYLE = true
 const float PERSONAL_SHIELD_HEALTH_FRAC_DAMAGED = 0.5  // below what frac of total health will the personal shield owner want to chatter about shield damage?
 
@@ -175,7 +175,10 @@ entity function ActivatePersonalShield_Recreate( entity owner )
 	OnThreadEnd(
 	function() : ( owner, mover, vortexSphere )
 		{
-			delete file.npcVortexSpheres[ owner ]
+			if( owner in file.npcVortexSpheres  )
+			{
+				delete file.npcVortexSpheres[ owner ]
+			}
 			if ( IsValid( owner ) )
 			{
 				owner.kv.defenseActive = false

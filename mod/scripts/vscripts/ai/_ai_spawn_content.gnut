@@ -156,11 +156,27 @@ function CommonNPCOnSpawned( entity npc )
 		CommonNPCTitanOnSpawned( npc )
 //		Assert( npc.Dev_GetAISettingByKeyField( "footstep_type" ) != "", "NPC " + npc + " has no footstep type set" )
 	}
-	else
+                if ( npc.GetClassName() == "npc_pilot_elite"   )
 	{
 		UpdateAIMinimapStatusToOtherPlayers( npc )
 
 		if ( npc.ai.mySpawnOptions_weapon != null )
+		{
+			array<entity> weapons = npc.GetMainWeapons()
+			TakeWeaponsForArray( npc, weapons )
+
+			npc.GiveWeapon( "mp_weapon_r97" )
+		}
+
+		entity weapon = npc.GetActiveWeapon()
+		if ( weapon != null && weapon.GetWeaponType() == WT_SIDEARM )
+			npc.DisableNPCFlag( NPC_CROUCH_COMBAT )
+	}
+	else
+	{
+		UpdateAIMinimapStatusToOtherPlayers( npc )
+
+		if ( npc.ai.mySpawnOptions_weapon != null && npc.GetClassName() != "npc_pilot_elite" )
 		{
 			array<entity> weapons = npc.GetMainWeapons()
 			TakeWeaponsForArray( npc, weapons )

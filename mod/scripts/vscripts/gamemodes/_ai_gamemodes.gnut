@@ -1,3 +1,5 @@
+untyped
+
 global function AiGameModes_Init
 
 global function AiGameModes_SetGruntWeapons
@@ -8,20 +10,66 @@ global function AiGameModes_SpawnDropPod
 global function AiGameModes_SpawnReaper
 global function AiGameModes_SpawnTitan
 
+global function AiGameModes_SpawnTitanBT
+
+global function AiGameModes_SpawnNPC
+global function AiGameModes_SpawnTitanRandom
+global function AiGameModes_SpawnGunShip
+
+global function AiGameModes_SpawnPilotCanEmbark
+global function AiGameModes_SpawnPilotWithTitan
+global function AiGameModes_OnNpcTitanBecomesPilot
+
+global function AiGameModes_SpawnDropPodToGetWeapons
+global function AiGameModes_SpawnDropPodWithWeapons
+global function AiGameModes_SpawnReaperDorpsWeapons
+
+global function AiGameModes_SpawnHarvester
+global function HarvesterHealth
+global function HarvesterThink
+global function HarvesterAlarm
+
 global function GetValidIntroDropShipSpawn
 
 
 const INTRO_DROPSHIP_CUTOFF = 2000
 
-struct
+global int initialplayercount
+
+global HarvesterStruct& fd_harvester
+
+
+struct 
 {
 	array< string > gruntWeapons = [ "mp_weapon_rspn101" ]
 	array< string > spectreWeapons = [ "mp_weapon_hemlok_smg" ]
-} file
+	array<float> harvesterDamageSource
+	bool havesterWasDamaged
+	bool harvesterShieldDown
+	float harvesterDamageTaken
+	entity harvester_info
+}file
+
+const array<string> WEAPONS = [ "mp_weapon_alternator_smg", "mp_weapon_arc_launcher", "mp_weapon_autopistol", "mp_weapon_car", "mp_weapon_defender", "mp_weapon_dmr", "mp_weapon_doubletake", "mp_weapon_epg", "mp_weapon_esaw", "mp_weapon_g2", "mp_weapon_hemlok", "mp_weapon_hemlok_smg", "mp_weapon_lmg", "mp_weapon_lstar", "mp_weapon_mastiff", "mp_weapon_mgl", "mp_weapon_pulse_lmg", "mp_weapon_r97", "mp_weapon_rocket_launcher", "mp_weapon_rspn101", "mp_weapon_rspn101_og", "mp_weapon_semipistol", "mp_weapon_shotgun", "mp_weapon_shotgun_pistol", "mp_weapon_smart_pistol", "mp_weapon_smr", "mp_weapon_sniper", "mp_weapon_softball", "mp_weapon_vinson", "mp_weapon_wingman", "mp_weapon_wingman_n" ]
+const array<string> MODS = [ "pas_run_and_gun", "threat_scope", "pas_fast_ads", "pas_fast_reload", "extended_ammo", "pas_fast_swap" ]
+
+const array< string > ANTITITANS = [ "mp_weapon_arc_launcher", "mp_weapon_mgl", "mp_weapon_rocket_launcher" ]
+const array< string > DEFENDER = [ "mp_weapon_defender" ]
+const array< string > PISTOLS = [ "mp_weapon_autopistol", "mp_weapon_semipistol", "mp_weapon_smart_pistol", "mp_weapon_wingman", "mp_weapon_wingman_n", "mp_weapon_shotgun_pistol" ]
+const array< string > SNIPERS = [ "mp_weapon_dmr", "mp_weapon_sniper", "mp_weapon_doubletake" ]
+const array< string > LAUNCHERS = [ "mp_weapon_smr", "mp_weapon_epg", "mp_weapon_pulse_lmg", "mp_weapon_softball" ]
+
+const array< string > ANTITAN_MODS = [ "pas_fast_ads", "pas_fast_swap", "pas_fast_reload", "extended_ammo" ]
+const array< string > DEFENDER_MODS = [ "pas_run_and_gun", "pas_fast_ads", "pas_fast_swap", "pas_fast_reload", "extended_ammo" ]
+const array< string > PISTOL_MODS = [ "pas_run_and_gun", "pas_fast_ads", "pas_fast_swap", "pas_fast_reload", "extended_ammo" ]
+const array< string > SNIPER_MODS = [ "pas_fast_ads", "pas_fast_swap", "pas_fast_reload", "extended_ammo" ]
+const array< string > LAUNCHER_MODS = [ "pas_run_and_gun", "pas_fast_ads", "pas_fast_swap", "pas_fast_reload", "extended_ammo" ]
+
+array< string > usedplayer = []
 
 void function AiGameModes_Init()
 {
-
+	RegisterSignal( "OnHarvesterDamaged" )
 }
 
 //------------------------------------------------------
@@ -38,8 +86,8 @@ void function AiGameModes_SetSpectreWeapons( array< string > weapons )
 
 //------------------------------------------------------
 
-void function AiGameModes_SpawnDropShip( vector pos, vector rot, int team, int count, void functionref( array<entity> guys ) squadHandler = null )
-{  
+void function AiGameModes_SpawnDropShip( vector pos, vector rot, int team, int count, void functionref( string squad ) squadHandler = null )
+{
 	string squadName = MakeSquadName( team, UniqueString( "" ) )
 
 	CallinData drop
@@ -50,77 +98,76 @@ void function AiGameModes_SpawnDropShip( vector pos, vector rot, int team, int c
 	drop.squadname 	= squadName
 	SetDropTableSpawnFuncs( drop, CreateSoldier, count )
 	SetCallinStyle( drop, eDropStyle.ZIPLINE_NPC )
-  
+
 	thread RunDropshipDropoff( drop )
-	
+
 	WaitSignal( drop, "OnDropoff" )
-	
+
 	array< entity > guys = GetNPCArrayBySquad( squadName )
-	
+
 	foreach ( guy in guys )
 	{
 		ReplaceWeapon( guy, file.gruntWeapons[ RandomInt( file.gruntWeapons.len() ) ], [] )
 		guy.EnableNPCFlag( NPC_ALLOW_PATROL | NPC_ALLOW_INVESTIGATE | NPC_ALLOW_HAND_SIGNALS | NPC_ALLOW_FLEE )
 	}
-	
+
 	if ( squadHandler != null )
-		thread squadHandler( guys )
+		thread squadHandler( squadName )
 }
 
 
-void function AiGameModes_SpawnDropPod( vector pos, vector rot, int team, string content /*( ͡° ͜ʖ ͡°)*/, void functionref( array<entity> guys ) squadHandler = null )
+void function AiGameModes_SpawnDropPod( vector pos, vector rot, int team, string content /*( ͡° ͜ʖ ͡°)*/, void functionref( string squad ) squadHandler = null )
 {
 	string squadName = MakeSquadName( team, UniqueString( "" ) )
 	array<entity> guys
-	
+
 	entity pod = CreateDropPod( pos, <0,0,0> )
-	
+
 	InitFireteamDropPod( pod )
-	
+
+	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
+
 	for ( int i = 0; i < 4 ;i++ )
 	{
 		entity npc = CreateNPC( content, team, pos,<0,0,0> )
 		DispatchSpawn( npc )
 		SetSquad( npc, squadName )
-		
+
 		switch ( content )
 		{
 			case "npc_soldier":
 				ReplaceWeapon( npc, file.gruntWeapons[ RandomInt( file.gruntWeapons.len() ) ], [] )
 				break
-				
+
 			case "npc_spectre":
 				ReplaceWeapon( npc, file.spectreWeapons[ RandomInt( file.spectreWeapons.len() ) ], [] )
 				break
 		}
-		
-		npc.SetParent( pod, "ATTACH", true )
-		
+
 		npc.EnableNPCFlag( NPC_ALLOW_PATROL | NPC_ALLOW_INVESTIGATE | NPC_ALLOW_HAND_SIGNALS | NPC_ALLOW_FLEE )
 		guys.append( npc )
 	}
-	
-	// The order here is different so we can show on minimap while were still falling
-	if ( squadHandler != null )
-		thread squadHandler( guys )
-		
-	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
-	
+
 	ActivateFireteamDropPod( pod, guys )
+
+	guys[ guys.len() - 1 ].WaitSignal( "npc_deployed" )
+
+	if ( squadHandler != null )
+		thread squadHandler( squadName )
 }
 
-void function AiGameModes_SpawnReaper( vector pos, vector rot, int team, string aiSettings = "", void functionref( entity reaper ) reaperHandler = null )
+void function AiGameModes_SpawnReaper( vector pos, vector rot, int team, void functionref( entity reaper ) reaperHandler = null )
 {
+	foreach ( entity player in GetPlayerArray() )
+	{
+	    Remote_CallFunction_Replay( player, "ServerCallback_ReplacementTitanSpawnpoint", pos.x, pos.y, pos.z, Time() + 5 )
+	}
+	wait(4)
 	entity reaper = CreateSuperSpectre( team, pos, rot )
-	SetSpawnOption_Titanfall( reaper )
-	SetSpawnOption_Warpfall( reaper )
-	
-	if ( aiSettings != "" )
-		SetSpawnOption_AISettings( reaper, aiSettings )
-	
+	SetSpawnOption_AISettings( reaper, "npc_super_spectre_aitdm" )
 	DispatchSpawn( reaper )
-	
-	
+	thread SuperSpectre_WarpFall( reaper )
+
 	if ( reaperHandler != null )
 		thread reaperHandler( reaper )
 }
@@ -131,17 +178,499 @@ void function AiGameModes_SpawnTitan( vector pos, vector rot, int team, string s
 	entity titan = CreateNPCTitan( setFile, TEAM_BOTH, pos, rot )
 	SetSpawnOption_Titanfall( titan )
 	SetSpawnOption_Warpfall( titan )
-	
+
 	if ( aiSettings != "" )
 		SetSpawnOption_AISettings( titan, aiSettings )
-	
+
 	DispatchSpawn( titan )
-	
+
 	if ( titanHandler != null )
 		thread titanHandler( titan )
 }
 
-// entity.ReplaceActiveWeapon gave grunts archers sometimes, this is my replacement for it
+entity function AiGameModes_SpawnTitanRandom( vector pos, vector rot, int team, void functionref( entity titan ) titanHandler = null )
+{
+	int randomindex = RandomInt( 7 )
+	string setfile = ""
+	string aiset = ""
+	switch( randomindex )
+	{
+		case 0:
+			setfile = "titan_atlas_stickybomb"
+			aiset = "npc_titan_auto_atlas_stickybomb"
+			break
+		case 1:
+			setfile = "titan_atlas_tracker"
+			aiset = "npc_titan_auto_atlas_tracker"
+			break
+		case 2:
+			setfile = "titan_stryder_leadwall"
+			aiset = "npc_titan_auto_stryder_leadwall"
+			break
+		case 3:
+			setfile = "titan_stryder_sniper"
+			aiset = "npc_titan_auto_stryder_sniper"
+			break
+		case 4:
+			setfile = "titan_ogre_meteor"
+			aiset = "npc_titan_auto_ogre_meteor"
+			break
+		case 5:
+			setfile = "titan_ogre_minigun"
+			aiset = "npc_titan_auto_ogre_minigun"
+			break
+		case 6:
+			setfile = "titan_atlas_vanguard"
+			aiset = "npc_titan_auto_atlas_vanguard"
+			break
+	}
+	foreach ( entity player in GetPlayerArray() )
+	{
+	    Remote_CallFunction_Replay( player, "ServerCallback_ReplacementTitanSpawnpoint", pos.x, pos.y, pos.z, Time() + 5 )
+	}
+	//string squadName = MakeSquadName( team, UniqueString( "ZiplineTable" ) )
+	entity titan = CreateNPC( "npc_titan", team, pos, rot )
+	SetSpawnOption_AISettings( titan, aiset )
+	//SetSpawnOption_Titanfall( titan )
+	//SetSpawnOption_Warpfall( titan )
+	//SetSpawnOption_NPCTitan( titan, TITAN_HENCH )
+    titan.ai.titanSpawnLoadout.setFile = setfile
+    OverwriteLoadoutWithDefaultsForSetFile( titan.ai.titanSpawnLoadout )
+	DispatchSpawn( titan )
+	thread NPCTitanHotdrops( titan, true )
+	
+	//titan.SetSkin(1)
+	//SetSquad( titan, squadName )
+
+	if ( titanHandler != null )
+		thread titanHandler( titan )
+
+	return titan
+}
+
+void function AiGameModes_SpawnTitanBT( vector pos, vector rot, int team, void functionref( entity titan ) titanHandler = null )
+{
+	foreach ( entity player in GetPlayerArray() )
+	{
+	    Remote_CallFunction_Replay( player, "ServerCallback_ReplacementTitanSpawnpoint", pos.x, pos.y, pos.z, Time() + 5 )
+	}
+	string squadName = MakeSquadName( team, UniqueString( "ZiplineTable" ) )
+	entity titan = CreateNPC( "npc_titan", team, pos, rot )
+	SetSpawnOption_AISettings( titan, "npc_titan_buddy")
+	SetSpawnOption_Titanfall( titan )
+	SetSpawnOption_Warpfall( titan )
+	SetSpawnOption_NPCTitan( titan, TITAN_HENCH )
+    titan.ai.titanSpawnLoadout.setFile = "titan_buddy"
+    OverwriteLoadoutWithDefaultsForSetFile( titan.ai.titanSpawnLoadout )
+	DispatchSpawn( titan )
+	titan.SetSkin(1)
+	SetSquad( titan, squadName )
+
+	if ( titanHandler != null )
+		thread titanHandler( titan )
+}
+
+void function AiGameModes_SpawnNPC( vector pos, vector rot, int team, string content )
+{
+	entity pod = CreateDropPod( pos, <0,0,0> )
+    entity spawnNpc
+
+    spawnNpc = CreateNPC( content, team, pos, rot )
+    SetSpawnOption_AISettings( spawnNpc, content )
+
+    InitFireteamDropPod( pod )
+	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
+    DispatchSpawn( spawnNpc )
+
+    thread DropPodActiveThink( pod )
+}
+
+void function AiGameModes_SpawnGunShip( vector pos, vector rot, int team )
+{
+	thread AiGameModes_SpawnGunShip_Threaded( pos, rot, team )
+}
+
+void function AiGameModes_SpawnGunShip_Threaded( vector pos, vector rot, int team )
+{
+
+	entity gunship = CreateNPC("npc_gunship", team, pos, rot )
+	DispatchSpawn( gunship )
+	thread PlayAnim( gunship , "st_AngelCity_IMC_Win_ComeIn")
+    wait(6)
+	vector spawnpoint = gunship.GetOrigin()
+	vector spawnang = gunship.GetAngles()
+	wait(1)
+	gunship.Destroy()
+	entity gunship2 = CreateNPC("npc_gunship", team, spawnpoint, spawnang )
+	DispatchSpawn( gunship2 )
+
+}
+
+void function AiGameModes_SpawnPilotCanEmbark( vector pos, vector rot, entity titan, int team, void functionref( entity titan ) titanHandler = null )
+{
+	entity pod = CreateDropPod( pos, <0,0,0> )
+	entity pilot
+
+	InitFireteamDropPod( pod )
+	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
+
+	pilot = CreateNPC( "npc_soldier", team, pos,<0,0,0> )
+	DispatchSpawn( pilot )
+
+	if( team == TEAM_MILITIA )
+		pilot.SetModel( $"models/humans/pilots/sp_medium_reaper_m.mdl" )
+	if( team == TEAM_IMC )
+		pilot.SetModel( $"models/humans/pilots/sp_medium_stalker_m.mdl" )
+	pilot.SetTitle( "鉄馭" )
+	pilot.SetMaxHealth( 1000 )
+	pilot.SetHealth( 1000 )
+
+	ReplaceWeapon( pilot, file.gruntWeapons[ RandomInt( file.gruntWeapons.len() ) ], [] )
+	
+	thread DropPodActiveThink( pod, 1 )
+
+	pilot.WaitSignal( "npc_deployed" )
+
+	thread CaptainThink( pilot )
+
+	//WaitFrame()
+	//thread NpcPilotCallsInAndEmbarksTitan(pilot, pilot.GetOrigin() + Vector(RandomFloatRange(-100,100),RandomFloatRange(-100,100),0), <0,0,0> )
+	
+	if ( titanHandler != null )
+		thread titanHandler( titan )
+
+	/*
+	wait 7
+	vector point = titan.GetOrigin()
+	pilot.AssaultPoint( point )
+	pilot.AssaultSetGoalRadius( 10 )
+
+	wait 5
+	if( IsValid( pilot ) && IsValid( titan ) )
+	{
+		thread NpcPilotEmbarksTitan( pilot, titan )
+		SetStanceStand( titan.GetTitanSoul() )
+	}
+	*/
+
+}
+
+/*
+void function AiGameModes_SpawnPilotCanEmbark( vector pos, vector rot,entity titan, int team, void functionref( entity titan ) titanHandler = null )
+{
+	entity pod = CreateDropPod( pos, <0,0,0> )
+	entity pilot = CreateNPC("npc_soldier", team, pos, rot )
+	//array<entity> titans = GetNPCArrayEx( "npc_titan", team, -1, <0,0,0>, -1 )
+	//entity titan = titans[RandomInt( titans.len() )]
+
+	InitFireteamDropPod( pod )
+	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
+
+	DispatchSpawn( pilot )
+	if( team == TEAM_MILITIA )
+		pilot.SetModel( $"models/humans/pilots/sp_medium_reaper_m.mdl" )
+	if( team == TEAM_IMC )
+		pilot.SetModel( $"models/humans/pilots/sp_medium_stalker_m.mdl" )
+	pilot.SetTitle( "鉄馭" )
+	pilot.SetMaxHealth( 500 )
+	pilot.SetHealth( 500 )
+
+	ReplaceWeapon( pilot, file.gruntWeapons[ RandomInt( file.gruntWeapons.len() ) ], [] )
+	//pilot.EnableNPCFlag( NPC_ALLOW_PATROL | NPC_ALLOW_INVESTIGATE | NPC_ALLOW_HAND_SIGNALS | NPC_ALLOW_FLEE )
+	
+	thread DropPodActiveThink( pod )
+
+	//pilot.WaitSignal( "npc_deployed" )
+
+	if ( titanHandler != null )
+		thread titanHandler( pilot )
+
+	//thread CaptainThink( pilot )
+
+	NpcPilotSetPetTitan( pilot, titan )
+	wait 5
+	//TeleportPilotToTitan( pilot, titan )
+	thread NpcPilotRunsToEmbarkTitan( pilot, titan )
+	
+	while(true)
+	{
+		wait 5
+
+		if( IsValid( pilot ) && IsValid( titan ) )
+		{
+			thread NpcPilotRunsToEmbarkTitan( pilot, titan )
+		}
+
+		if( !IsValid( pilot ) || !IsValid( titan ) )
+			break
+	}
+}
+*/
+
+void function TeleportPilotToTitan( entity pilot , entity titan )
+{
+	vector origin = titan.GetOrigin();
+	vector angles = titan.GetAngles();
+
+	pilot.SetOrigin(origin)
+	pilot.SetAngles(angles)
+}
+
+void function AiGameModes_SpawnPilotWithTitan( vector pos, vector rot, int team, void functionref( entity titan ) titanHandler = null )
+{
+	entity pod = CreateDropPod( pos, <0,0,0> )
+	entity pilot = CreateNPC("npc_soldier", team, pos, rot )
+	array<entity> pilots = [ pilot ]
+
+	InitFireteamDropPod( pod )
+	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
+
+	DispatchSpawn( pilot )
+	if( team == TEAM_MILITIA )
+		pilot.SetModel( $"models/humans/pilots/sp_medium_reaper_m.mdl" )
+	if( team == TEAM_IMC )
+		pilot.SetModel( $"models/humans/pilots/sp_medium_stalker_m.mdl" )
+	pilot.SetTitle( "鉄馭" )
+	pilot.SetMaxHealth( 1000 )
+	pilot.SetHealth( 1000 )
+
+	foreach ( pilot in pilots )
+	{
+		ReplaceWeapon( pilot, file.gruntWeapons[ RandomInt( file.gruntWeapons.len() ) ], [] )
+		pilot.EnableNPCFlag( NPC_ALLOW_PATROL | NPC_ALLOW_INVESTIGATE | NPC_ALLOW_HAND_SIGNALS | NPC_ALLOW_FLEE )
+	}
+	
+	ActivateFireteamDropPod( pod, pilots )
+
+	pilots[ pilots.len() - 1 ].WaitSignal( "npc_deployed" )
+
+	if ( titanHandler != null )
+		thread titanHandler( pilot )
+
+	thread CaptainThink( pilot )
+	WaitFrame()
+	//thread NpcPilotCallsInAndEmbarksTitan(pilot, pilot.GetOrigin() + Vector(RandomFloatRange(-100,100),RandomFloatRange(-100,100),0), <0,0,0> )
+	entity titan = NpcPilotCallsInTitan(pilot, pilot.GetOrigin(), <0,0,0> )
+
+	wait 5
+	if( IsValid( pilot ) && IsValid( titan ) )
+	{
+		thread NpcPilotRunsToEmbarkTitan( pilot, titan )
+		if ( titanHandler != null )
+			thread titanHandler( titan )
+	}
+
+	
+
+}
+
+function AiGameModes_OnNpcTitanBecomesPilot( pilot )
+{
+	expect entity( pilot )
+	if( pilot.GetTeam()  == TEAM_MILITIA )
+	{
+		pilot.SetModel( $"models/humans/pilots/sp_medium_reaper_m.mdl" )
+		
+		pilot.SetTitle( "鉄馭" )
+		pilot.SetMaxHealth( 1000 )
+		pilot.SetHealth( 1000 )
+		thread CaptainThink( pilot )
+	}
+	if( pilot.GetTeam()  == TEAM_IMC )
+	{
+		pilot.SetModel( $"models/humans/pilots/sp_medium_stalker_m.mdl" )
+
+		pilot.SetTitle( "鉄馭" )
+		pilot.SetMaxHealth( 1000 )
+		pilot.SetHealth( 1000 )
+		thread CaptainThink( pilot )
+	}
+}
+
+void function AiGameModes_SpawnDropPodToGetWeapons( vector pos, vector rot )
+{
+	thread DropWeaponAlert( pos )
+	thread AiGameModes_SpawnDropPodToGetWeapons_Threaded( pos, rot )
+}
+
+void function AiGameModes_SpawnDropPodToGetWeapons_Threaded( vector pos, vector rot )
+{
+	usedplayer.clear()
+	wait 10
+	entity pod = CreateDropPod( pos, <0,0,0> )
+	HighlightDropPod( pod )
+
+	InitFireteamDropPod( pod )
+
+	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
+	pod.SetUsable()
+    pod.SetUsableByGroup( "pilot" )
+    pod.SetUsePrompts( "按住 %use% 以獲取武器", "按下 %use% 以獲取武器" )
+    //AddCallback_OnUseEntity( pod , GiveAirDropWeapon )
+    AddCallback_OnUseEntity( pod , GiveTitanAvability )
+    
+    wait 30
+    if( IsValid(pod) )
+    	pod.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
+}
+
+function GiveAirDropWeapon( pod , player )
+{
+	expect entity( player )
+	vector pos = player.GetOrigin()
+	string uid = player.GetUID()
+
+	
+	if( usedplayer.contains( uid ) )
+	{
+		SendHudMessage(player, "曾於本輪補給艙中獲取了武器，不可再次獲取",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
+		return
+	}
+    DropModdedWeapons( WEAPONS, pos, MODS )
+    SendHudMessage(player, "已從補給艙中獲取武器",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
+    usedplayer.append( uid )
+
+}
+
+function GiveTitanAvability( pod, player )
+{
+	expect entity( player )
+
+	SendHudMessage(player, "於補給倉獲取一次泰坦降落機會",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
+	BurnMeter_GiveRewardDirect( player, "burnmeter_nuke_titan" )
+	if( IsValid(pod) )
+		pod.Destroy()
+}
+
+void function AiGameModes_SpawnDropPodWithWeapons( vector pos, vector rot, array<string> weapons, array<string> mods, int amount = 4, float destructionTime = 60 )
+{
+	thread DropWeaponAlert( pos )
+	thread AiGameModes_SpawnDropPodWithWeapons_Threaded( pos, rot, weapons, mods, amount )
+}
+
+void function AiGameModes_SpawnDropPodWithWeapons_Threaded( vector pos, vector rot, array<string> weapons, array<string> mods, int amount = 4 )
+{
+	/*
+	foreach ( entity player in GetPlayerArray() )
+	{
+	    Remote_CallFunction_Replay( player, "ServerCallback_ReplacementTitanSpawnpoint", pos.x, pos.y, pos.z, Time() + 4 )
+	}
+	*/
+	wait 10
+	entity pod = CreateDropPod( pos, <0,0,0> )
+
+	InitFireteamDropPod( pod )
+
+	waitthread LaunchAnimDropPod( pod, "pod_testpath", pos, rot )
+
+	thread DropPodActiveThink( pod, 60 )
+
+	wait 1.5
+	for( int i = 0; i < amount; i++ )
+    {
+        //string weaponName = weapons[ RandomInt(weapons.len()) ]
+
+        DropModdedWeapons( weapons, pos, mods )
+    }
+}
+
+void function AiGameModes_SpawnReaperDorpsWeapons( vector pos, vector rot, array<string> weapons, array<string> mods )
+{
+	thread DropWeaponAlert( pos )
+    thread AiGameModes_SpawnReaperDorpsWeapons_Threaded( pos, rot, weapons, mods )
+}
+
+void function AiGameModes_SpawnReaperDorpsWeapons_Threaded( vector pos, vector rot, array<string> weapons, array<string> mods )
+{
+    wait(10)
+    entity reaper = CreateSuperSpectre( TEAM_UNASSIGNED, pos, rot )
+    SetSpawnOption_AISettings( reaper, "npc_super_spectre_aitdm" )
+    DispatchSpawn( reaper )
+    thread SuperSpectre_WarpFall( reaper )
+
+    wait(1)
+    reaper.Destroy()
+    for( int i = 0; i <= 4; i++ )
+    {
+        //string weaponName = weapons[ RandomInt(weapons.len()) ]
+        DropModdedWeapons( weapons, pos, mods )
+    }
+}
+
+void function DropWeaponAlert( vector pos )
+{
+	foreach ( entity player in GetPlayerArray() )
+	{
+	    Remote_CallFunction_Replay( player, "ServerCallback_ReplacementTitanSpawnpoint", pos.x, pos.y, pos.z, Time() + 12 )
+	}
+}
+
+void function DropWeaponAlertSonar( vector pos, int radius = 300, int times = 999 )
+{
+	for( int i = 0; i <= times; i++ )
+    {
+		foreach ( entity player in GetPlayerArray() )
+	    {
+    		if( IsValid(player) && GetGameState() == eGameState.Playing )
+    		{
+	        	Remote_CallFunction_Replay( player, "ServerCallback_SonarPulseFromPosition", pos.x, pos.y, pos.z, radius, 1.0, true )
+	        }
+    	}
+    	WaitFrame()
+    }
+    /*
+    foreach ( entity player in GetPlayerArray() )
+    {
+		if( IsValid(player) )
+		{
+        	Remote_CallFunction_Replay( player, "ServerCallback_IncomingAirDrop", pos.x, pos.y, pos.z, Time() + 10 )
+        }
+	}
+	*/
+}
+
+void function DropModdedWeapons( array<string> weapons, vector droppoint, array<string> mods )
+{
+	string weaponName = weapons[ RandomInt(weapons.len()) ]
+    entity weapon = CreateWeaponEntityByNameWithPhysics( weaponName, droppoint + Vector(0,0,20), <0,0,0> )
+    if( ANTITITANS.contains( weaponName ) )
+    	mods = ANTITAN_MODS
+    if( DEFENDER.contains( weaponName ) )
+    	mods = DEFENDER_MODS
+    if( PISTOLS.contains( weaponName ) )
+    	mods = PISTOL_MODS
+    if( SNIPERS.contains( weaponName ) )
+        mods = SNIPER_MODS
+    if( LAUNCHERS.contains( weaponName ) )
+    	mods = LAUNCHER_MODS
+    weapon.SetMods( mods )
+    HighlightWeaponAmped( weapon )
+}
+
+void function HighlightWeaponAmped( entity weapon )
+{
+#if HAS_WEAPON_PICKUP_HIGHLIGHT
+	if ( weapon.IsLoadoutPickup() )
+	{
+		Highlight_SetOwnedHighlight( weapon, "sp_loadout_pickup" )
+		Highlight_SetNeutralHighlight( weapon, "sp_loadout_pickup" )
+	}
+	else
+	{
+		Highlight_SetOwnedHighlight( weapon, "enemy_boss_bounty" )
+		Highlight_SetNeutralHighlight( weapon, "enemy_boss_bounty" )
+	}
+#endif // #if HAS_WEAPON_PICKUP_HIGHLIGHT
+}
+
+void function HighlightDropPod( entity pod )
+{
+	Highlight_SetOwnedHighlight( pod, "enemy_boss_bounty" )
+	Highlight_SetNeutralHighlight( pod, "enemy_boss_bounty" )
+}
+
+//------------------------------------------------------
+
 void function ReplaceWeapon( entity guy, string weapon, array<string> mods )
 {
 	guy.TakeActiveWeapon()
@@ -149,22 +678,225 @@ void function ReplaceWeapon( entity guy, string weapon, array<string> mods )
 	guy.SetActiveWeaponByName( weapon )
 }
 
-// Checks if we can spawn a dropship at a node, this should guarantee dropship ziplines
+//------------------------------------------------------
+
 array<entity> function GetValidIntroDropShipSpawn( array<entity> introNodes )
 {
 	array<entity> introShipSpawns
-	
-	if ( GetZiplineDropshipSpawns().len() == 0 )
-		return []
-	
+
 	foreach ( node in introNodes )
 	{
 		entity closestNode = GetClosest( GetZiplineDropshipSpawns(), node.GetOrigin() )
 		SetTeam( closestNode, node.GetTeam() )
-		
+
 		if ( Distance( closestNode.GetOrigin(), node.GetOrigin() ) < INTRO_DROPSHIP_CUTOFF )
 			introShipSpawns.append( closestNode )
 	}
-	
+
 	return introShipSpawns
+}
+
+//------------------------------------------------------
+
+HarvesterStruct function AiGameModes_SpawnHarvester( vector pos, int team )
+{
+	fd_harvester = SpawnHarvester(pos,< 0,0,0 >, HarvesterHealth(),HarvesterHealth(),TEAM_MILITIA)
+    SetTeam(fd_harvester.harvester, team)
+    fd_harvester.harvester.Minimap_SetAlignUpright( true )
+	fd_harvester.harvester.Minimap_AlwaysShow( TEAM_IMC, null )
+	fd_harvester.harvester.Minimap_AlwaysShow( TEAM_MILITIA, null )
+	fd_harvester.harvester.Minimap_SetHeightTracking( true )
+	fd_harvester.harvester.Minimap_SetZOrder( MINIMAP_Z_OBJECT )
+	fd_harvester.harvester.Minimap_SetCustomState( eMinimapObject_prop_script.FD_HARVESTER )
+    //DispatchSpawn(fd_harvester)
+    Highlight_SetEnemyHighlight( fd_harvester.harvester, "hunted_enemy" )
+    Highlight_SetFriendlyHighlight( fd_harvester.harvester, "hunted_friendly" )
+    AddEntityCallback_OnDamaged(fd_harvester.harvester, OnHarvesterDamaged)
+
+    return fd_harvester
+}
+
+void function HarvesterThink()
+{
+	entity harvester = fd_harvester.harvester
+
+	if( IsValid(harvester) )
+	{
+		EmitSoundOnEntity( harvester,"coop_generator_startup" )
+
+		float lastTime = Time()
+		wait 4
+		int lastShieldHealth = harvester.GetShieldHealth()
+		generateBeamFX( fd_harvester )
+		generateShieldFX( fd_harvester )
+
+		EmitSoundOnEntity( harvester, "coop_generator_ambient_healthy" )
+
+		bool isRegening = false // stops the regenning sound to keep stacking on top of each other
+
+		while ( IsAlive( harvester ) )
+		{
+			float currentTime = Time()
+			float deltaTime = currentTime -lastTime
+
+			if ( IsValid( fd_harvester.particleShield ) )
+			{
+				vector shieldColor = GetShieldTriLerpColor(1.0-(harvester.GetShieldHealth().tofloat()/harvester.GetShieldHealthMax().tofloat()))
+				EffectSetControlPointVector( fd_harvester.particleShield, 1, shieldColor )
+			}
+
+			if( IsValid( fd_harvester.particleBeam ) )
+			{
+				vector beamColor = GetShieldTriLerpColor( 1.0 - (harvester.GetHealth().tofloat() / harvester.GetMaxHealth().tofloat() ) )
+				EffectSetControlPointVector( fd_harvester.particleBeam, 1, beamColor )
+			}
+
+			if ( fd_harvester.harvester.GetShieldHealth() == 0 )
+				if( IsValid( fd_harvester.particleShield ) )
+					fd_harvester.particleShield.Destroy()
+
+			if ( ( ( currentTime-fd_harvester.lastDamage) >= GENERATOR_SHIELD_REGEN_DELAY ) && ( harvester.GetShieldHealth() < harvester.GetShieldHealthMax() ) )
+			{
+				if( !IsValid(fd_harvester.particleShield) )
+					generateShieldFX(fd_harvester)
+
+				//printt((currentTime-fd_harvester.lastDamage))
+
+				if(harvester.GetShieldHealth()==0)
+					EmitSoundOnEntity(harvester,"coop_generator_shieldrecharge_start")
+
+				if (!isRegening)
+				{
+					EmitSoundOnEntity( harvester,"coop_generator_shieldrecharge_resume" )
+					file.harvesterShieldDown = false
+					isRegening = true
+				}
+
+				float newShieldHealth = ( harvester.GetShieldHealthMax() / GENERATOR_SHIELD_REGEN_TIME * deltaTime ) + harvester.GetShieldHealth()
+
+				if ( newShieldHealth >= harvester.GetShieldHealthMax() )
+				{
+					StopSoundOnEntity(harvester,"coop_generator_shieldrecharge_resume")
+					harvester.SetShieldHealth(harvester.GetShieldHealthMax())
+					EmitSoundOnEntity(harvester,"coop_generator_shieldrecharge_end")
+					
+					PlayFactionDialogueToTeam( "fortwar_baseShieldUpFriendly", TEAM_IMC )
+					isRegening = false
+				}
+				else
+				{
+					harvester.SetShieldHealth(newShieldHealth)
+				}
+			} else if ( ( ( currentTime-fd_harvester.lastDamage) < GENERATOR_SHIELD_REGEN_DELAY ) && ( harvester.GetShieldHealth() < harvester.GetShieldHealthMax() ) )
+				isRegening = false
+
+			if ( ( lastShieldHealth > 0 ) && ( harvester.GetShieldHealth() == 0 ) )
+				EmitSoundOnEntity(harvester,"coop_generator_shielddown")
+
+			lastShieldHealth = harvester.GetShieldHealth()
+			lastTime = currentTime
+			WaitFrame()
+		}
+	}
+
+}
+
+void function OnHarvesterDamaged(entity harvester, var damageInfo)
+{
+	if ( !IsValid( harvester ) )
+		return
+
+	if( fd_harvester.harvester != harvester )
+		return
+
+	if ( GetGlobalNetTime( "FD_harvesterInvulTime" ) > Time() )
+	{
+		harvester.SetShieldHealth( harvester.GetShieldHealthMax() )
+		return
+	}
+
+	int damageSourceID = DamageInfo_GetDamageSourceIdentifier( damageInfo )
+	entity attacker = DamageInfo_GetAttacker( damageInfo )
+	float damageAmount = DamageInfo_GetDamage( damageInfo )
+
+	if ( !damageSourceID && !damageAmount && !attacker )
+		return
+
+	fd_harvester.lastDamage = Time()
+
+	float shieldPercent = ( (harvester.GetShieldHealth().tofloat() / harvester.GetShieldHealthMax()) * 100 )
+
+	if ( harvester.GetShieldHealth() == 0 )
+	{
+		if( !file.harvesterShieldDown )
+		{
+			PlayFactionDialogueToTeam( "fortwar_baseShieldDownFriendly", TEAM_IMC )
+			PlayFactionDialogueToTeam( "fortwar_baseShieldDownEnemy", TEAM_MILITIA )
+			file.harvesterShieldDown = true // prevent shield dialogues from repeating
+		}
+		file.harvesterDamageTaken = file.harvesterDamageTaken + damageAmount // track damage for wave recaps
+		float newHealth = harvester.GetHealth() - damageAmount
+		float oldhealthpercent = ( ( harvester.GetHealth().tofloat() / harvester.GetMaxHealth() ) * 100 )
+		float healthpercent = ( ( newHealth / harvester.GetMaxHealth() ) * 100 )
+
+		if (healthpercent <= 75 && oldhealthpercent > 75) // we don't want the dialogue to keep saying "Harvester is below 75% health" everytime they take additional damage
+		{
+			PlayFactionDialogueToTeam( "fortwar_baseDmgFriendly75", TEAM_IMC )
+			PlayFactionDialogueToTeam( "fortwar_baseDmgEnemy75", TEAM_MILITIA )
+		}
+
+		if (healthpercent <= 50 && oldhealthpercent > 50)
+		{
+			PlayFactionDialogueToTeam( "fortwar_baseDmgFriendly50", TEAM_IMC )
+			PlayFactionDialogueToTeam( "fortwar_baseDmgEnemy50", TEAM_MILITIA )
+		}
+
+		if (healthpercent <= 25 && oldhealthpercent > 25)
+		{
+			PlayFactionDialogueToTeam( "fortwar_baseDmgFriendly25", TEAM_IMC )
+			PlayFactionDialogueToTeam( "fortwar_baseDmgEnemy25", TEAM_MILITIA )
+		}
+
+		if (healthpercent <= 10)
+		{
+			//PlayFactionDialogueToTeam( "fd_baseLowHealth", TEAM_MILITIA )
+		}
+
+		if( newHealth <= 0 )
+		{
+			EmitSoundAtPosition(TEAM_UNASSIGNED,fd_harvester.harvester.GetOrigin(),"coop_generator_destroyed")
+			newHealth = 0
+			//PlayFactionDialogueToTeam( "fd_baseDeath", TEAM_MILITIA )
+			fd_harvester.rings.Destroy()
+			fd_harvester.harvester.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
+		}
+		harvester.SetHealth( newHealth )
+		file.havesterWasDamaged = true
+	}
+
+	if ( DamageInfo_GetDamageSourceIdentifier( damageInfo ) == eDamageSourceId.mp_titancore_laser_cannon )
+    	DamageInfo_SetDamage( damageInfo, DamageInfo_GetDamage( damageInfo )/10 ) // laser core shreds super well for some reason
+
+	if ( attacker.IsPlayer() )
+		attacker.NotifyDidDamage( harvester, DamageInfo_GetHitBox( damageInfo ), DamageInfo_GetDamagePosition( damageInfo ), DamageInfo_GetCustomDamageType( damageInfo ), DamageInfo_GetDamage( damageInfo ), DamageInfo_GetDamageFlags( damageInfo ), DamageInfo_GetHitGroup( damageInfo ), DamageInfo_GetWeapon( damageInfo ), DamageInfo_GetDistFromAttackOrigin( damageInfo ) )
+}
+
+void function HarvesterAlarm()
+{
+	while(IsAlive(fd_harvester.harvester))
+	{
+		if(fd_harvester.harvester.GetShieldHealth()==0)
+		{
+			wait EmitSoundOnEntity(fd_harvester.harvester,"coop_generator_underattack_alarm")
+		}
+		else
+		{
+			WaitFrame()
+		}
+	}
+}
+
+int function HarvesterHealth()
+{
+    return initialplayercount * 5000
 }

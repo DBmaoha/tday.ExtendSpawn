@@ -1,6 +1,6 @@
 untyped
 
-global const NPC_TITAN_PILOT_PROTOTYPE = 0
+global const NPC_TITAN_PILOT_PROTOTYPE = 1
 global function AiPilots_Init
 
 global function CaptainThink
@@ -47,7 +47,7 @@ global struct NPCPilotStruct
 	bool isInvulnerable
 }
 
-const NPC_NEXT_TITANTIME_RESET = -1
+const NPC_NEXT_TITANTIME_RESET = 1
 const NPC_NEXT_TITANTIME_MIN = 45
 const NPC_NEXT_TITANTIME_MAX = 60
 const NPC_NEXT_TITANTIME_INTERUPT = 15
@@ -203,7 +203,7 @@ function NpcPilotCallTitanThink( entity pilot )
 			//		continue
 
 				//don't do stuff if you dont have a spawnPoint
-				spawnPoint = FindSpawnPointForNpcCallin( pilot, TITAN_MEDIUM_AJAX_MODEL, HOTDROP_TURBO_ANIM )
+				spawnPoint = FindSpawnPointForNpcCallin( pilot, $"models/titans/medium/titan_medium_ajax.mdl", HOTDROP_TURBO_ANIM )
 				if ( !spawnPoint.valid )
 					continue
 
@@ -277,6 +277,7 @@ function NpcPilotCallTitanThink( entity pilot )
 
 entity function NpcPilotCallsInAndEmbarksTitan( entity pilot, vector origin, vector angles )
 {
+                thread CaptainThink( pilot )
 	entity titan = NpcPilotCallsInTitan( pilot, origin, angles )
 	thread NpcPilotRunsToAndEmbarksFallingTitan( pilot, titan )
 
@@ -335,18 +336,61 @@ entity function NpcPilotCallsInTitan( entity pilot, vector origin, vector angles
 	//reset the next titan callin timer
 	NpcResetNextTitanRespawnAvailable( pilot )
 
-	//spawn a titan
-	array<string> settingsArray = GetAllowedTitanAISettings()
+	int randomindex = RandomInt( 7 )
+	string titanSetFile = ""
+	string titanSettings = ""
+	asset titanModel = $""
+	switch( randomindex )
+	{
+		case 0:
+			titanSetFile = "titan_atlas_stickybomb"
+			titanSettings = "npc_titan_auto_atlas_stickybomb"
+			titanModel = $"models/titans/medium/titan_medium_ajax.mdl"
+			break
+		case 1:
+			titanSetFile = "titan_atlas_tracker"
+			titanSettings = "npc_titan_auto_atlas_tracker"
+			titanModel = $"models/titans/medium/titan_medium_wraith.mdl"
+			break
+		case 2:
+			titanSetFile = "titan_stryder_leadwall"
+			titanSettings = "npc_titan_auto_stryder_leadwall"
+			titanModel = $"models/titans/light/titan_light_locust.mdl"
+			break
+		case 3:
+			titanSetFile = "titan_stryder_sniper"
+			titanSettings = "npc_titan_auto_stryder_sniper"
+			titanModel = $"models/titans/light/titan_light_raptor.mdl"
+			break
+		case 4:
+			titanSetFile = "titan_ogre_meteor"
+			titanSettings = "npc_titan_auto_ogre_meteor"
+			titanModel = $"models/titans/heavy/titan_heavy_ogre.mdl"
+			break
+		case 5:
+			titanSetFile = "titan_ogre_minigun"
+			titanSettings = "npc_titan_auto_ogre_minigun"
+			titanModel = $"models/titans/heavy/titan_heavy_deadbolt.mdl"
+			break
+		case 6:
+			titanSetFile = "titan_atlas_vanguard"
+			titanSettings = "npc_titan_auto_atlas_vanguard"
+			titanModel = $"models/titans/medium/titan_medium_vanguard.mdl"
+			break
+	}
 
-	string titanSettings = settingsArray.getrandom()
-	entity titan 		= CreateNPC( "npc_titan", pilot.GetTeam(), origin, angles )
+	SpawnPointFP spawnPoint = FindSpawnPointForNpcCallin( pilot, titanModel, HOTDROP_TURBO_ANIM )
+	entity titan 		= CreateNPC( "npc_titan", pilot.GetTeam(), spawnPoint.origin, spawnPoint.angles )
 	SetSpawnOption_AISettings( titan, titanSettings )
+	titan.ai.titanSpawnLoadout.setFile = titanSetFile
+    	OverwriteLoadoutWithDefaultsForSetFile( titan.ai.titanSpawnLoadout )
 	DispatchSpawn( titan )
 
 	NpcPilotSetPetTitan( pilot, titan )
 
 	//call it in
-	thread NPCTitanHotdrops( titan, false, "at_hotdrop_drop_2knee_turbo_upgraded" )
+	//titan.kv.script_hotdrop = "4"
+	thread NPCTitanHotdrops( titan, false, "at_hotdrop_drop_2knee_turbo" )
 	thread __TitanKneelOrStandAfterDropin( titan, pilot )
 
 	//get the titan ready to be embarked
@@ -553,13 +597,7 @@ void function NpcPilotBecomesTitan( entity pilot, entity titan )
 	titanSoul.soul.seatedNpcPilot.isValid				= true
 
 	titanSoul.soul.seatedNpcPilot.team 					= pilot.GetTeam()
-	titanSoul.soul.seatedNpcPilot.spawnflags 			= expect int( pilot.kv.spawnflags )
-	titanSoul.soul.seatedNpcPilot.accuracy 				= expect float( pilot.kv.AccuracyMultiplier )
-	titanSoul.soul.seatedNpcPilot.proficieny 			= expect float( pilot.kv.WeaponProficiency )
-	titanSoul.soul.seatedNpcPilot.health 				= expect float( pilot.kv.max_health )
-	titanSoul.soul.seatedNpcPilot.physDamageScale 		= expect float( pilot.kv.physdamagescale )
-	titanSoul.soul.seatedNpcPilot.weapon 				= pilot.GetMainWeapons()[0].GetWeaponClassName()
-	titanSoul.soul.seatedNpcPilot.squadName 			= expect string( pilot.kv.squadname )
+
 
 	titanSoul.soul.seatedNpcPilot.modelAsset 			= pilot.GetModelName()
 	titanSoul.soul.seatedNpcPilot.title 				= pilot.GetTitle()
@@ -592,14 +630,15 @@ entity function NpcTitanBecomesPilot( entity titan )
 	vector angles 			= titan.GetAngles()
 	entity pilot 			= CreateElitePilot( team, origin, angles )
 
+                pilot.SetModel($"models/humans/pilots/pilot_medium_geist_f.mdl")                
+                thread CaptainThink( pilot )
 	SetSpawnOption_Weapon( pilot, weapon )
 	SetSpawnOption_SquadName( pilot, squadName )
 	pilot.SetValueForModelKey( model )
 	DispatchSpawn( pilot )
 	pilot.SetModel( model ) // this is a hack, trying to avoid having a model spawn option because its easy to abuse
 
-	NpcPilotSetPetTitan( pilot, titan )
-	NpcResetNextTitanRespawnAvailable( pilot )
+	//NpcResetNextTitanRespawnAvailable( pilot )
 
 	pilot.kv.spawnflags 			= titanSoul.soul.seatedNpcPilot.spawnflags
 	pilot.kv.AccuracyMultiplier 	= titanSoul.soul.seatedNpcPilot.accuracy
