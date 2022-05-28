@@ -1,0 +1,34 @@
+{
+	"Name" : "mp_tday Extended Spawning",
+	"Description" : "",
+	"Version": "1.0.0",
+	"LoadPriority": 1,
+	"RequiredOnClient": false,
+
+	"Scripts": [
+		{
+			"Path": "spawnpoint.gnut",
+			"RunOn": "SERVER",
+		},
+		{
+			"Path": "gamemodes/_gamemode_pfw.nut",
+			"RunOn": "SERVER && MP",
+		},
+		{
+			"Path": "gamemodes/cl_gamemode_pfw.nut",
+			"RunOn": "CLIENT && MP",
+		},
+		{
+			"Path": "gamemodes/sh_gamemode_pfw.nut",
+			"RunOn": "CLIENT || SERVER",
+			"ClientCallback": {
+				"Before": "Sh_GamemodePFW_Init"
+			},
+			"ServerCallback": {
+				"Before": "Sh_GamemodePFW_Init"
+			}
+		},
+	]
+
+}
+
