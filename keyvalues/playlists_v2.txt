@@ -13,6 +13,7 @@ playlists
 				hint #PL_pfw_hint
 				abbreviation #PL_pfw_abbr
 				scorelimit 4
+				timelimit 20
 				riff_allow_npcs 1
 				color		"88 220 151 255"
 
