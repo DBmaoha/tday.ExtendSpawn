@@ -71,7 +71,6 @@ void function SpawnIntroBatch_IMC()
 
 	thread Spawner_IMC( TEAM_IMC )
 	thread SpawnerWeapons( TEAM_IMC )
-	thread CheckHarvesterStat()
 }
 
 // Populates the match
@@ -134,6 +133,8 @@ void function Spawner_IMC( int team )
 				thread PlayerInAreaThink( harvesterDestoryed, team )
 			}
 
+			thread CheckHarvesterStat()
+
 		}
 		else
 			break
@@ -170,32 +171,28 @@ void function CheckHarvesterStat()
 {
 	while(true)
 	{
-		if( harvesterDestoryed == 4 )
+		if( IsValid(fd_harvester.harvester) || harvesterDestoryed == 4 )
 			return
-		else
+		else if( !IsValid(fd_harvester.harvester) )
 		{
-			if( IsValid(fd_harvester.harvester) )
-				continue
-			if( !IsValid(fd_harvester.harvester) )
+			foreach( entity player in GetPlayerArrayOfTeam( TEAM_MILITIA ) )
 			{
-				foreach( entity player in GetPlayerArrayOfTeam( TEAM_MILITIA ) )
-				{
-					ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀！\", \"出生點已推進，繼續進攻！\" )" )
-				}
-				AddTeamScore( TEAM_MILITIA, 1 )
-				harvesterDestoryed += 1
-
-				WaitFrame()
-				if( !(harvesterDestoryed == 4) )
-					AiGameModes_SpawnHarvester( harvesterpos[harvesterDestoryed], TEAM_IMC )
-				thread HarvesterThink()
-				thread HarvesterAlarm()
-				foreach( entity player in GetPlayerArrayOfTeam( TEAM_IMC ) )
-				{
-					ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀\", \"出生點已後撤，保持防禦\" )" )
-				}
-				initialplayercount = GetPlayerArray().len()
+				ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀！\", \"出生點已推進，繼續進攻！\" )" )
 			}
+			AddTeamScore( TEAM_MILITIA, 1 )
+			harvesterDestoryed += 1
+
+			WaitFrame()
+			if( !(harvesterDestoryed == 4) )
+				AiGameModes_SpawnHarvester( harvesterpos[harvesterDestoryed], TEAM_IMC )
+			thread HarvesterThink()
+			thread HarvesterAlarm()
+			foreach( entity player in GetPlayerArrayOfTeam( TEAM_IMC ) )
+			{
+				ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀\", \"出生點已後撤，保持防禦\" )" )
+			}
+			initialplayercount = GetPlayerArray().len()
+			return
 		}
 		WaitFrame()
 	}
@@ -243,7 +240,7 @@ void function SquadHandler( string squad )
 
 			point_mlt = harvesterpos[ harvesterDestoryed ]
 			Point imchandler = DroppodSpawnArea( harvesterDestoryed, TEAM_MILITIA )
-			point_imc = imchandler.origin
+			point_imc = imchandler.vector
 
 			foreach ( guy in guys )
 			{
