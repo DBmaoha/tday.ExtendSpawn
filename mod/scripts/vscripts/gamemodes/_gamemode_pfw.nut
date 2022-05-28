@@ -240,7 +240,7 @@ void function SquadHandler( string squad )
 
 			point_mlt = harvesterpos[ harvesterDestoryed ]
 			Point imchandler = DroppodSpawnArea( harvesterDestoryed, TEAM_MILITIA )
-			point_imc = imchandler.vector
+			point_imc = imchandler.origin
 
 			foreach ( guy in guys )
 			{
