@@ -214,7 +214,7 @@ void function SpawnerWeapons( int team )
 			}
 
 			Point node = DroppodSpawnArea( harvesterDestoryed, team )
-			for( int i = 0, i < GetPlayerArrayOfTeam(team)/4, i++ )
+			for( int i = 0; i < GetPlayerArrayOfTeam(team).len()/4; i++ )
 				waitthread AiGameModes_SpawnDropPodToGetWeapons( node.origin, node.angles )
 		}
 		else
