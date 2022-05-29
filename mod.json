@@ -3,7 +3,7 @@
 	"Description" : "",
 	"Version": "1.0.0",
 	"LoadPriority": 1,
-	"RequiredOnClient": false,
+	"RequiredOnClient": true,
 
 	"Scripts": [
 		{
