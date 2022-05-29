@@ -2,10 +2,13 @@ untyped
 global function GamemodePFW_Init
 
 const SQUADS_PER_TEAM_MLT = 4
-const SQUADS_PER_TEAM_IMC = 4
+const SQUADS_PER_TEAM_IMC = 3
 
 global int harvesterDestoryed = 0
-table< int, vector > harvesterpos = { [0] = Vector(1538.4, -5492.91, 288.031), [1] = Vector(-4197.01, 2755.03, 224.031), [2] = Vector(-13371, 10409.8, 2347.54), [3] = Vector(-722.411, 13421.1, 2592.03) }
+global bool elevatorReached = false
+global bool destroyedNPCmlt = false
+global bool destroyedNPCimc = false
+table< int, vector > harvesterpos = { [0] = Vector(1538.4, -5492.91, 288.031), [1] = Vector(-4197.01, 2755.03, 224.031), [2] = Vector(-13371, 10409.8, 2347.54), [3] = Vector(836.201, 14202.1, 2592.03) }
 
 void function GamemodePFW_Init()
 {
@@ -18,9 +21,12 @@ void function GamemodePFW_Init()
 
 	AddCallback_GameStateEnter( eGameState.Playing, OnPlaying )
 	AddCallback_OnPlayerRespawned( OnPlayerRespawned )
+	AddCallback_OnClientConnected( OnClientConnected )
+	AddCallback_OnPlayerKilled( OnPlayerKilled )
+	AddSpawnCallback( "npc_soldier", SoldierConfig )
 
 	AiGameModes_SetGruntWeapons( [ "mp_weapon_car", "mp_weapon_vinson", "mp_weapon_sniper" ] )
-	AiGameModes_SetSpectreWeapons( [ "mp_weapon_defender", "mp_weapon_epg", "mp_weapon_rocket_launcher", "mp_weapon_smr" ] )
+	AiGameModes_SetSpectreWeapons( [ "mp_weapon_mastiff", "mp_weapon_doubletake", "mp_weapon_hemlok_smg" ] )
 
 	ClassicMP_ForceDisableEpilogue( true )
 }
@@ -30,26 +36,54 @@ void function GamemodePFW_Init()
 void function OnPlaying()
 {
 	Hack_MapInit()
+
+	UpdateBTHealth()
+	foreach( entity soldier in GetNPCArrayOfTeam(TEAM_IMC) )
+	{
+		if( IsValid(soldier) )
+			soldier.Destroy()
+	}
 	initialplayercount = GetPlayerArray().len()
 
 	thread SpawnIntroBatch_MLT()
 	thread SpawnIntroBatch_IMC()
-
 }
 
 void function OnPlayerRespawned( entity player )
 {
-	Point point
+	RespawnPlayerInArea( player )
+}
+
+void function OnClientConnected( entity player )
+{
+	UpdateBTHealth()
+}
+
+void function OnPlayerKilled( entity victim, entity attacker, var damageInfo )
+{
+	thread OnPlayerKilled_Threaded( victim )
+}
+
+void function OnPlayerKilled_Threaded( entity player )
+{
 	if( player.GetTeam() == TEAM_MILITIA )
-		point = PlayerSpawnArea( harvesterDestoryed, TEAM_MILITIA )
+	{
+		wait 5
+		if( IsValid(player) )
+			ForceRespawnPlayerInArea( player )
+	}
 	if( player.GetTeam() == TEAM_IMC )
-		point = PlayerSpawnArea( harvesterDestoryed, TEAM_IMC )
+	{
+		wait 8
+		if( IsValid(player) )
+			ForceRespawnPlayerInArea( player )
+	}
+}
 
-	player.SetOrigin( point.origin )
-	player.SetAngles( point.angles )
-
-	player.SetShieldHealthMax( 100 )
-	player.SetShieldHealth( 100 )
+void function SoldierConfig( entity soldier )
+{
+	soldier.SetMaxHealth(100)
+	soldier.SetHealth(100)
 }
 
 //------------------------------------------------------
@@ -71,6 +105,7 @@ void function SpawnIntroBatch_IMC()
 
 	thread Spawner_IMC( TEAM_IMC )
 	thread SpawnerWeapons( TEAM_IMC )
+	thread UpdateHarvesterHealth()
 }
 
 // Populates the match
@@ -94,10 +129,22 @@ void function Spawner_MLT( int team )
 				waitthread AiGameModes_SpawnDropPod( node.origin, node.angles, team, "npc_soldier", SquadHandler )
 			}
 
+			if( elevatorReached && !destroyedNPCmlt ) //Elevator point, we need destroy npcs
+			{
+				array<entity> soldiers = GetNPCArrayOfTeam( TEAM_MILITIA )
+				foreach( entity soldier in soldiers )
+				{
+					if( IsValid(soldier) )
+						soldier.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
+				}
+				destroyedNPCmlt = true
+			}
+
 			if( !checkingOOB[index] )
 			{
 				thread PlayerInAreaThink( harvesterDestoryed+1, team )
 			}
+
 		}
 		else
 			break
@@ -114,9 +161,6 @@ void function Spawner_IMC( int team )
 	{
 		if( !(harvesterDestoryed == 4) )
 		{
-			if( IsValid(fd_harvester.harvester) )
-				GameRules_SetTeamScore(TEAM_IMC, fd_harvester.harvester.GetHealth() )
-
 			// TODO: this should possibly not count scripted npc spawns, probably only the ones spawned by this script
 			array<entity> npcs = GetNPCArrayOfTeam( team )
 			int count = npcs.len()
@@ -126,6 +170,17 @@ void function Spawner_IMC( int team )
 			{
 				Point node = DroppodSpawnArea( harvesterDestoryed, team )
 				waitthread AiGameModes_SpawnDropPod( node.origin, node.angles, team, "npc_spectre", SquadHandler )
+			}
+
+			if( elevatorReached && !destroyedNPCimc ) //Elevator point, we need destroy npcs
+			{
+				array<entity> soldiers = GetNPCArrayOfTeam( TEAM_IMC )
+				foreach( entity soldier in soldiers )
+				{
+					if( IsValid(soldier) )
+						soldier.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
+				}
+				destroyedNPCimc = true
 			}
 
 			if( !checkingOOB[index] )
@@ -141,6 +196,7 @@ void function Spawner_IMC( int team )
 		WaitFrame()
 	}
 }
+
 
 void function SpawnerWeapons( int team )
 {
@@ -167,12 +223,88 @@ void function SpawnerWeapons( int team )
 
 //------------------------------------------------------
 
+void function UpdateHarvesterHealth()
+{
+	while( true )
+	{
+		if( !(harvesterDestoryed == 4) )
+		{
+			if( IsValid(fd_harvester.harvester) )
+				GameRules_SetTeamScore(TEAM_IMC, fd_harvester.harvester.GetHealth() )
+			WaitFrame()
+		}
+		else
+			break
+	}
+}
+
+void function UpdateBTHealth()
+{
+	array<entity> titans = GetNPCArrayByClass( "npc_titan" )
+	int health = ( GetPlayerArrayOfTeam(TEAM_IMC).len()+1 )*2500
+	foreach( entity titan in titans )
+	{
+		if( IsPetTitan(titan) )
+			continue
+		titan.SetMaxHealth( health )
+		titan.SetHealth( health*GetHealthFrac(titan) )
+		foreach( entity weapon in titan.GetMainWeapons() )
+			titan.TakeWeaponNow( weapon.GetWeaponClassName() )
+		titan.GiveWeapon( "mp_titanweapon_xo16_vanguard" )
+
+	}
+}
+
+//------------------------------------------------------
+
+void function RespawnPlayerInArea( entity player )
+{
+	Point point
+	if( player.GetTeam() == TEAM_MILITIA )
+		point = PlayerSpawnArea( harvesterDestoryed, TEAM_MILITIA )
+	if( player.GetTeam() == TEAM_IMC )
+		point = PlayerSpawnArea( harvesterDestoryed, TEAM_IMC )
+
+	player.SetOrigin( point.origin )
+	player.SetAngles( point.angles )
+
+	player.SetShieldHealthMax( 100 )
+	player.SetShieldHealth( 100 )
+}
+
+void function ForceRespawnPlayerInArea( entity player )
+{
+	Point point
+	if( player.GetTeam() == TEAM_MILITIA )
+		point = PlayerSpawnArea( harvesterDestoryed, TEAM_MILITIA )
+	if( player.GetTeam() == TEAM_IMC )
+		point = PlayerSpawnArea( harvesterDestoryed, TEAM_IMC )
+	
+	if( !IsAlive( player ) )
+	{
+		entity spawnpoint = CreateEntity( "script_mover" )
+		spawnpoint.SetOrigin( point.origin )
+		spawnpoint.SetAngles( point.angles )
+		player.RespawnPlayer( spawnpoint )
+	}
+
+	player.SetShieldHealthMax( 100 )
+	player.SetShieldHealth( 100 )
+}
+
+//------------------------------------------------------
+
 void function CheckHarvesterStat()
 {
 	while(true)
 	{
-		if( IsValid(fd_harvester.harvester) || harvesterDestoryed == 4 )
+		if( IsValid(fd_harvester.harvester) )
 			return
+		if( harvesterDestoryed == 4 )
+		{
+			OlaTakeOff()
+			return
+		}
 		else if( !IsValid(fd_harvester.harvester) )
 		{
 			foreach( entity player in GetPlayerArrayOfTeam( TEAM_MILITIA ) )
@@ -181,8 +313,9 @@ void function CheckHarvesterStat()
 			}
 			AddTeamScore( TEAM_MILITIA, 1 )
 			harvesterDestoryed += 1
-
-			WaitFrame()
+			WaitFrame()		
+			if( harvesterDestoryed == 2 )
+				elevatorReached = true
 			if( !(harvesterDestoryed == 4) )
 				AiGameModes_SpawnHarvester( harvesterpos[harvesterDestoryed], TEAM_IMC )
 			thread HarvesterThink()
@@ -204,6 +337,8 @@ void function SquadHandler( string squad )
 {
 	array< entity > guys
 
+	array<entity> titans
+
 	vector point
 
 	vector point_mlt
@@ -213,6 +348,8 @@ void function SquadHandler( string squad )
 	try
 	{
 		guys = GetNPCArrayBySquad( squad )
+
+		titans = GetNPCArrayByClass( "npc_titan" )
 
 		point = harvesterpos[ harvesterDestoryed ]
 
@@ -233,6 +370,20 @@ void function SquadHandler( string squad )
 			thread AITdm_CleanupBoredNPCThread( guy )
 		}
 
+		foreach ( titan in titans )
+		{
+			if( IsPetTitan(titan) )
+				continue
+			titan.AssaultPoint( point )
+			titan.AssaultSetGoalRadius( 1000 )
+
+			// show on enemy radar
+			foreach ( player in players )
+				titan.Minimap_AlwaysShow( 0, player )
+
+			thread AITdm_CleanupBoredNPCThread( titan )
+		}
+
 		// Every 15 secs change AssaultPoint
 		while ( true )
 		{
@@ -250,6 +401,19 @@ void function SquadHandler( string squad )
 				{
 					guy.AssaultPoint( point_imc )
 					guy.AssaultSetGoalRadius( 4000 )
+				}
+			}
+
+			foreach ( titan in titans )
+			{
+				if( IsPetTitan(titan) )
+					continue
+				if( titan.GetTeam() == TEAM_MILITIA )
+					titan.AssaultPoint( point_mlt )
+				else
+				{
+					titan.AssaultPoint( point_imc )
+					titan.AssaultSetGoalRadius( 4000 )
 				}
 			}
 
