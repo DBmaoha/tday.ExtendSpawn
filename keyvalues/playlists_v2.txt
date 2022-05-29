@@ -14,7 +14,7 @@ playlists
 				abbreviation #PL_pfw_abbr
 				scorelimit 4
 				timelimit 20
-				respawn_delay 3
+				respawn_delay 8
 				riff_allow_npcs 1
 				color		"88 220 151 255"
 
