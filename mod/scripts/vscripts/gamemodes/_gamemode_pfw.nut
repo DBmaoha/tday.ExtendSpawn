@@ -8,7 +8,7 @@ global int harvesterDestoryed = 0
 global bool elevatorReached = false
 global bool destroyedNPCmlt = false
 global bool destroyedNPCimc = false
-table< int, vector > harvesterpos = { [0] = Vector(1538.4, -5492.91, 288.031), [1] = Vector(-4197.01, 2755.03, 224.031), [2] = Vector(-13371, 10409.8, 2347.54), [3] = Vector(836.201, 14202.1, 2592.03) }
+table< int, vector > harvesterpos = { [0] = Vector(1538.4, -5492.91, 288.031), [1] = Vector(-4197.01, 2755.03, 224.031), [2] = Vector(-13371, 10409.8, 2347.54), [3] = Vector(316.667, 13862.8, 2636.03) }
 
 void function GamemodePFW_Init()
 {
