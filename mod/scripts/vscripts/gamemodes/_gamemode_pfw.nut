@@ -38,7 +38,7 @@ void function OnPlaying()
 	Hack_MapInit()
 
 	//UpdateBTHealth()
-	foreach( entity soldier in GetNPCArray() )
+	foreach( entity soldier in GetNPCArrayOfTeam(TEAM_IMC) )
 	{
 		if( IsValid(soldier) )
 			soldier.Destroy()
@@ -214,7 +214,7 @@ void function SpawnerWeapons( int team )
 			}
 
 			Point node = DroppodSpawnArea( harvesterDestoryed, team )
-			for( int i = 0; i < GetPlayerArrayOfTeam(team).len()/4; i++ )
+			for( int i = 0; i < (GetPlayerArrayOfTeam(team).len()/4)+1; i++ )
 				waitthread AiGameModes_SpawnDropPodToGetWeapons( node.origin, node.angles )
 		}
 		else

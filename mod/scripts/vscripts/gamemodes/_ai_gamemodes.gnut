@@ -705,7 +705,7 @@ array<entity> function GetValidIntroDropShipSpawn( array<entity> introNodes )
 
 HarvesterStruct function AiGameModes_SpawnHarvester( vector pos, int team )
 {
-	fd_harvester = SpawnHarvester(pos,< 0,0,0 >, HarvesterHealth(),HarvesterHealth(),TEAM_MILITIA)
+	fd_harvester = SpawnHarvester(pos,< 0,0,0 >, HarvesterHealth(),int(HarvesterHealth()*0.5),TEAM_MILITIA)
     SetTeam(fd_harvester.harvester, team)
     fd_harvester.harvester.Minimap_SetAlignUpright( true )
 	fd_harvester.harvester.Minimap_AlwaysShow( TEAM_IMC, null )
@@ -906,5 +906,5 @@ void function HarvesterAlarm()
 
 int function HarvesterHealth()
 {
-    return initialplayercount * 5000
+    return initialplayercount * 2000
 }
