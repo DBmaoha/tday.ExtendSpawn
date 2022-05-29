@@ -831,6 +831,9 @@ void function OnHarvesterDamaged(entity harvester, var damageInfo)
 
 	float shieldPercent = ( (harvester.GetShieldHealth().tofloat() / harvester.GetShieldHealthMax()) * 100 )
 
+	if ( shieldPercent < 100 && !file.harvesterShieldDown)
+		PlayFactionDialogueToTeam( "fortwar_baseEnemyAllyAttacking", TEAM_MILITIA )
+
 	if ( harvester.GetShieldHealth() == 0 )
 	{
 		if( !file.harvesterShieldDown )
