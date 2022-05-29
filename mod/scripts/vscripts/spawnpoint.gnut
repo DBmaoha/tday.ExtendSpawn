@@ -10,16 +10,76 @@ global function PlayerInAreaThink
 array<string> OOBplayers = []
 global array<bool> checkingOOB = [false, false]
 
-const vector PLAYER_SPAWN_1 = < 1647.32, -13920.4, 406.377 >
+const vector MLT_SPAWN_1 = < 1647.32, -13920.4, 406.377 >
 const float MLT_RADIUS_1 = 1500
-const vector PLAYER_SPAWN_2 = < 1537.49, -7283.81, 316.031 >   //**need changes
+const vector MLT_ANGLES_1 = < 0, 90, 0 >
+
+const vector MLT_SPAWN_2 = < 1537.49, -7283.81, 316.031 >
 const float MLT_RADIUS_2 = 1500
-const vector PLAYER_SPAWN_3 = < -5231.85, 7190.73, 1952.03 >   //**need changes
+const vector MLT_ANGLES_2 = < 0, 90, 0 >
+
+const vector MLT_SPAWN_3 = < -5231.85, 7190.73, 1952.03 >
 const float MLT_RADIUS_3 = 1000
-const vector PLAYER_SPAWN_4 = < -6799.33, 14179.7, 2592.03 >   //**need changes
-const float MLT_RADIUS_4 = 250
-const vector PLAYER_SPAWN_5 = < 1989.37, 14171.2, 2536.03 >    //**need changes
-const float MLT_RADIUS_5 = 300
+const vector MLT_ANGLES_3 = < 0, 135, 0 >
+
+const vector MLT_SPAWN_4 = < -6700.73, 14190.4, 2592.03 >
+const float MLT_RADIUS_4 = 130
+const vector MLT_ANGLES_4 = < 0, 90, 0 >
+
+
+const vector IMC_SPAWN_1 = < 740.183, -2564.81, 224.031 >  
+const float IMC_RADIUS_1 = 320
+const vector IMC_ANGLES_1 = < 0, 0, 0 >
+
+const vector IMC_SPAWN_2 = < -6961.04, 2742.9, 224.031 >
+const float IMC_RADIUS_2 = 100
+const vector IMC_ANGLES_2 = < 0, 0, 0 >
+
+const vector IMC_SPAWN_3 = < -10759.5, 14665.7, 2848.03 >
+const float IMC_RADIUS_3 = 800
+const vector IMC_ANGLES_3 = < 0, -90, 0 >
+
+const vector IMC_SPAWN_4 = < 3364.24, 14146.2, 2214.58 >
+const float IMC_RADIUS_4 = 400
+const vector IMC_ANGLES_4 = < 0, 180, 0 >
+
+
+const array<vector> MLT_NODE_1 = [< 1648.31, -10298.8, 234.171 >]
+const float MLT_NODE_RADIUS_1 = 1500 
+
+const array<vector> MLT_NODE_2 = [< -854.07, 2380.8, 208.031 >, < 372.274, 1270.64, 208.031 >]
+const float MLT_NODE_RADIUS_2 = 200 
+
+const array<vector> MLT_NODE_3 = [< -8598.01, 8014.38, 2351.88 >]
+const float MLT_NODE_RADIUS_3 = 1500 
+
+const array<vector> MLT_NODE_4 = [< -10759.5, 14665.7, 2848.03 >]
+const float MLT_NODE_RADIUS_4 = 800 
+
+
+const array<vector> IMC_NODE_1 = [< 1637.7, -1721.65, 160.031 >, < 1213.51, -143.61, 160.031 >]
+const float IMC_NODE_RADIUS_1 = 200 
+
+const array<vector> IMC_NODE_2 = [< -3776.72, 3679.68, 208.031 >, < -2189.72, 3261.42, 208.031 >]
+const float IMC_NODE_RADIUS_2 = 200
+
+const array<vector> IMC_NODE_3 = [< -12043.1, 10687.8, 2566.97 >]
+const float IMC_NODE_RADIUS_3 = 1200 
+
+const array<vector> IMC_NODE_4 = [< -1109.69, 14125, 2592.03 >]
+const float IMC_NODE_RADIUS_4 = 1000 
+
+
+const vector BATTLE_AREA_1 = < 1647.32, -13920.4, 406.377 >
+const float BATTLE_RADIUS_1 = 1500
+const vector BATTLE_AREA_2 = < 1565.06, -4090.02, 280.586 >
+const float BATTLE_RADIUS_2 = 1000
+const vector BATTLE_AREA_3 = < -6365.34, 2720.75, 224.031 >
+const float BATTLE_RADIUS_3 = 1500
+const vector BATTLE_AREA_4 = < -12597.6, 15228.6, 2544.03 >
+const float BATTLE_RADIUS_4 = 2000
+const vector BATTLE_AREA_5 = < 3186.82, 14227.1, 2214.58 >
+const float BATTLE_RADIUS_5 = 1500
 
 #endif
 
@@ -29,33 +89,37 @@ void function tday_SpawnPoints_Init()
 }
 
 #if SERVER
-Point function PlayerSpawnArea( int progress )
+Point function PlayerSpawnArea( int progress, int team )
 {
-    switch( progress )
+    if( team == TEAM_MILITIA ) 
     {
-        case 0:
-            return SearchHotDropPointFromArea( PLAYER_SPAWN_1, MLT_RADIUS_1 )
-        case 1:
-            return SearchHotDropPointFromArea( PLAYER_SPAWN_2, MLT_RADIUS_2 )
-        case 2:
-            return SearchHotDropPointFromArea( PLAYER_SPAWN_3, MLT_RADIUS_3 )
-        case 3:
-            return SearchPointFromArea( PLAYER_SPAWN_4, MLT_RADIUS_4 )
-        case 4:
-            return SearchPointFromArea( PLAYER_SPAWN_5, MLT_RADIUS_5 )
+        switch( progress )
+        {
+            case 0:
+                return SearchHotDropPointFromArea( MLT_SPAWN_1, MLT_RADIUS_1, MLT_ANGLES_1 )
+            case 1:
+                return SearchHotDropPointFromArea( MLT_SPAWN_2, MLT_RADIUS_2, MLT_ANGLES_2 )
+            case 2:
+                return SearchHotDropPointFromArea( MLT_SPAWN_3, MLT_RADIUS_3, MLT_ANGLES_3 )
+            case 3:
+                return SearchPointFromArea( MLT_SPAWN_4, MLT_RADIUS_4, MLT_ANGLES_4 )
+        }
     }
-    return SearchHotDropPointFromArea( PLAYER_SPAWN_1, MLT_RADIUS_1 )
-    /*
-    point 1 <1647.32, -13920.4, 406.377> radius = 1500
-
-    point 2 <1537.49, -7283.81, 316.031> radius = 1500
-
-    point 3 <-5231.85, 7190.73, 1952.03> radius = 1000
-
-    point 4 <-6799.33, 14179.7, 2592.03> radius = 250
-
-    point 5 <1989.37, 14171.2, 2536.03> radius = 300
-    */
+    else
+    {
+        switch( progress )
+        {
+            case 0:
+                return SearchPointFromArea( IMC_SPAWN_1, IMC_RADIUS_1, IMC_ANGLES_1 )
+            case 1:
+                return SearchPointFromArea( IMC_SPAWN_2, IMC_RADIUS_2, IMC_ANGLES_2 )
+            case 2:
+                return SearchHotDropPointFromArea( IMC_SPAWN_3, IMC_RADIUS_3, IMC_ANGLES_3 )
+            case 3:
+                return SearchPointFromArea( IMC_SPAWN_4, IMC_RADIUS_4, IMC_ANGLES_4 )
+        }
+    }
+    return SearchHotDropPointFromArea( MLT_SPAWN_1, MLT_RADIUS_1, < 0,0,0 > )
 }
 
 Point function DroppodSpawnArea( int progress, int team )
@@ -66,9 +130,20 @@ Point function DroppodSpawnArea( int progress, int team )
         switch( progress )
         {
             case 0:
-                return SearchHotDropPointFromArea( < 1648.31, -10298.8, 234.171 >, 1500 )
+                foreach( vector nodepoint in MLT_NODE_1 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, MLT_NODE_RADIUS_1, MLT_ANGLES_1 ) )
+                return nodes[ RandomInt( nodes.len() ) ]
             case 1:
-                nodes = [SearchHotDropPointFromArea( < 1653.26, -1733.88, 160.031 >, 200 ), SearchHotDropPointFromArea( < 1209.13, -160.671, 160.031 >, 200 )]
+                foreach( vector nodepoint in MLT_NODE_2 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, MLT_NODE_RADIUS_2, MLT_ANGLES_2 ) )
+                return nodes[ RandomInt( nodes.len() ) ]
+            case 2:
+                foreach( vector nodepoint in MLT_NODE_3 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, MLT_NODE_RADIUS_3, MLT_ANGLES_3 ) )
+                return nodes[ RandomInt( nodes.len() ) ]
+            case 3:
+                foreach( vector nodepoint in MLT_NODE_4 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, MLT_NODE_RADIUS_4, MLT_ANGLES_4 ) )
                 return nodes[ RandomInt( nodes.len() ) ]
         }
     }
@@ -77,31 +152,28 @@ Point function DroppodSpawnArea( int progress, int team )
         switch( progress )
         {
             case 0:
-                nodes = [SearchHotDropPointFromArea( < 1653.26, -1733.88, 160.031 >, 200 ), SearchHotDropPointFromArea( < 1209.13, -160.671, 160.031 >, 200 )]
+                foreach( vector nodepoint in IMC_NODE_1 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, IMC_NODE_RADIUS_1, IMC_ANGLES_1 ) )
                 return nodes[ RandomInt( nodes.len() ) ]
             case 1:
-                nodes = [SearchHotDropPointFromArea( < -3776.72, 3679.68, 208.031 >, 200 ), SearchHotDropPointFromArea( < -2189.72, 3261.42, 208.031 >, 200 )]
+                foreach( vector nodepoint in IMC_NODE_2 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, IMC_NODE_RADIUS_2, IMC_ANGLES_2 ) )
+                return nodes[ RandomInt( nodes.len() ) ]
+            case 2:
+                foreach( vector nodepoint in IMC_NODE_3 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, IMC_NODE_RADIUS_3, IMC_ANGLES_3 ) )
+                return nodes[ RandomInt( nodes.len() ) ]
+            case 3:
+                foreach( vector nodepoint in IMC_NODE_4 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, IMC_NODE_RADIUS_4, IMC_ANGLES_4 ) )
                 return nodes[ RandomInt( nodes.len() ) ]
         }
     }
 
-    return SearchPointFromArea( < 1648.31, -10298.8, 234.171 >, 1500 )
-
-
-    /*
-    point 1 <1648.31, -10298.8, 234.171> radius = 1500
-
-    point 1
-
-    point mlt 2.1 <1653.26, -1733.88, 160.031> radius = 200
-    point mlt 2.2 <1209.13, -160.671, 160.031> radius = 200
-
-    point imc 2.1 <-3776.72, 3679.68, 208.031> radius = 200
-    point imc 2.2 <-2189.72, 3261.42, 208.031> radius = 200
-    */
+    return SearchPointFromArea( < 1648.31, -10298.8, 234.171 >, 1500, < 0,0,0 > )
 }
 
-Point function SearchHotDropPointFromArea( vector center, float radius )
+Point function SearchHotDropPointFromArea( vector center, float radius, vector angles )
 {
     vector pointmodi = center
     vector result
@@ -110,10 +182,10 @@ Point function SearchHotDropPointFromArea( vector center, float radius )
     result.y = RandomFloatRange( center.y - radius, center.y + radius )
     result.z = center.z
 
-    return CalculateTitanReplacementPoint( result, result, < 0, 270, 0 > )
+    return CalculateTitanReplacementPoint( result, result, angles )
 }
 
-Point function SearchPointFromArea( vector center, float radius )
+Point function SearchPointFromArea( vector center, float radius, vector angles )
 {
     Point point
     vector pointmodi = center
@@ -124,7 +196,7 @@ Point function SearchPointFromArea( vector center, float radius )
     result.z = center.z
 
     point.origin = result
-    point.angles = < 0, 180, 0 >
+    point.angles = angles
 
     return point
 }
@@ -137,24 +209,24 @@ void function PlayerInAreaThink( int progress, int team )
     switch( progress )
     {
         case 0:
-            radius = 1500
-            center = PLAYER_SPAWN_1
+            radius = BATTLE_RADIUS_1
+            center = BATTLE_AREA_1
             break
         case 1:
-            radius = 1500
-            center = PLAYER_SPAWN_2
+            radius = BATTLE_RADIUS_2
+            center = BATTLE_AREA_2
             break
         case 2:
-            radius = 1000
-            center = PLAYER_SPAWN_3
+            radius = BATTLE_RADIUS_3
+            center = BATTLE_AREA_3
             break
         case 3:
-            radius = 250
-            center = PLAYER_SPAWN_4
+            radius = BATTLE_RADIUS_4
+            center = BATTLE_AREA_4
             break
         case 4:
-            radius = 300
-            center = PLAYER_SPAWN_5
+            radius = BATTLE_RADIUS_5
+            center = BATTLE_AREA_5
             break
     }
     if( !checkingOOB[index] )
@@ -164,14 +236,21 @@ void function PlayerInAreaThink( int progress, int team )
         {
             foreach( entity player in GetPlayerArrayOfTeam( team ) )
             {
-                if( IsPlayerInArea( player, center, radius ) && OOBplayers.contains( player.GetUID() ) )
+                if( IsPlayerInArea( player, center, radius ) && !OOBplayers.contains( player.GetUID() ) )
                 {
                     thread PlayerInAreaWarning( player, center, radius )
                     OOBplayers.append( player.GetUID() )
                 }
             }
+            foreach( entity player in GetPlayerArrayOfTeam( GetOtherTeam( team ) ) )
+            {
+                if( IsPlayerInArea( player, center, radius ) )
+                {
+                    thread PlayerInAreaRegenShield( player, center, radius )
+                }
+            }
             WaitFrame()
-            if( progress != harvesterDestoryed )
+            if( progress != harvesterDestoryed+index )
             {
                 checkingOOB[index] = false
                 return
@@ -180,11 +259,50 @@ void function PlayerInAreaThink( int progress, int team )
     }
 }
 
+void function PlayerInAreaRegenShield( entity player, vector center, float radius )
+{
+    float shieldRegenStartDelay = 5.0
+
+    while ( IsValid( player ) )
+    {
+        wait 1
+
+        if ( !IsAlive( player ) )
+            continue
+
+        if ( !IsPilot( player ) )
+            continue
+
+        if( !IsPlayerInArea( player, center, radius ) )
+            continue
+
+        float shieldRegenRate = 25    // health regen per tick
+
+        if ( player.GetHealth() != player.GetMaxHealth() )
+            continue
+
+        if ( player.GetShieldHealth() == player.GetShieldHealthMax() )
+            continue
+
+        if ( Time() - player.p.lastDamageTime < shieldRegenStartDelay )
+        {
+            continue
+        }
+
+        SendHudMessage( player, "正在回復護盾", -1, 0.4, 135, 206, 235, 255, 0, 1, 0 )
+        player.SetShieldHealth( min( player.GetShieldHealthMax(), player.GetShieldHealth() + shieldRegenRate ) )
+        if ( player.GetShieldHealth() == player.GetShieldHealthMax() )
+        {
+            SendHudMessage( player, "護盾已充能完畢(100點)", -1, 0.4, 135, 206, 235, 255, 0.15, 2, 0 )
+        }
+    }
+}
+
 void function PlayerInAreaWarning( entity player, vector center, float radius )
 {
     if( IsValid( player ) )
     {
-        SendHudMessage( player, "已超出战斗区域，3s后若未及时返回将被处死", -1, 0.4, 255, 255, 0, 255, 0, 2, 0 )
+        SendHudMessage( player, "已超出戰鬥區域，3秒内未返回將被處死", -1, 0.4, 255, 255, 0, 255, 0, 2, 0 )
     }
     wait 3
     if( IsValid( player ) )
