@@ -142,7 +142,7 @@ void function Spawner_MLT( int team )
 
 			if( !checkingOOB[index] )
 			{
-				thread PlayerInAreaThink( harvesterDestoryed+1, team )
+				thread PlayerInAreaThink( team )
 			}
 
 		}
@@ -185,7 +185,7 @@ void function Spawner_IMC( int team )
 
 			if( !checkingOOB[index] )
 			{
-				thread PlayerInAreaThink( harvesterDestoryed, team )
+				thread PlayerInAreaThink( team )
 			}
 
 			thread CheckHarvesterStat()

@@ -12,15 +12,15 @@ global array<bool> checkingOOB = [false, false]
 
 const vector MLT_SPAWN_1 = < 1647.32, -13920.4, 406.377 >
 const float MLT_RADIUS_1 = 1500
-const vector MLT_ANGLES_1 = < 0, 90, 0 >
+const vector MLT_ANGLES_1 = < 0, -90, 0 >
 
 const vector MLT_SPAWN_2 = < 1537.49, -7283.81, 316.031 >
 const float MLT_RADIUS_2 = 1500
-const vector MLT_ANGLES_2 = < 0, 90, 0 >
+const vector MLT_ANGLES_2 = < 0, -90, 0 >
 
 const vector MLT_SPAWN_3 = < -5231.85, 7190.73, 1952.03 >
 const float MLT_RADIUS_3 = 1000
-const vector MLT_ANGLES_3 = < 0, 135, 0 >
+const vector MLT_ANGLES_3 = < 0, -225, 0 >
 
 const vector MLT_SPAWN_4 = < -6700.73, 14190.4, 2592.03 >
 const float MLT_RADIUS_4 = 130
@@ -37,7 +37,7 @@ const vector IMC_ANGLES_2 = < 0, 0, 0 >
 
 const vector IMC_SPAWN_3 = < -10759.5, 14665.7, 2848.03 >
 const float IMC_RADIUS_3 = 800
-const vector IMC_ANGLES_3 = < 0, -90, 0 >
+const vector IMC_ANGLES_3 = < 0, 90, 0 >
 
 const vector IMC_SPAWN_4 = < 3364.24, 14146.2, 2214.58 >
 const float IMC_RADIUS_4 = 400
@@ -105,7 +105,7 @@ Point function PlayerSpawnArea( int progress, int team )
                 return SearchPointFromArea( MLT_SPAWN_4, MLT_RADIUS_4, MLT_ANGLES_4 )
         }
     }
-    else
+    if( team == TEAM_IMC ) 
     {
         switch( progress )
         {
@@ -147,7 +147,7 @@ Point function DroppodSpawnArea( int progress, int team )
                 return nodes[ RandomInt( nodes.len() ) ]
         }
     }
-    else
+    if( team == TEAM_IMC ) 
     {
         switch( progress )
         {
@@ -201,12 +201,14 @@ Point function SearchPointFromArea( vector center, float radius, vector angles )
     return point
 }
 
-void function PlayerInAreaThink( int progress, int team )
+void function PlayerInAreaThink( int team )
 {
-    int index = team == TEAM_MILITIA ? 0 : 1
+    int teamindex = team == TEAM_MILITIA ? 0 : 1
+    int progressindex = team == TEAM_IMC ? 0 : 1
     float radius
     vector center
-    switch( progress )
+    int progress = harvesterDestoryed
+    switch( progress+progressindex )
     {
         case 0:
             radius = BATTLE_RADIUS_1
@@ -229,9 +231,9 @@ void function PlayerInAreaThink( int progress, int team )
             center = BATTLE_AREA_5
             break
     }
-    if( !checkingOOB[index] )
+    if( !checkingOOB[teamindex] )
     {
-        checkingOOB[index] = true
+        checkingOOB[teamindex] = true
         while( true )
         {
             foreach( entity player in GetPlayerArrayOfTeam( team ) )
@@ -250,9 +252,9 @@ void function PlayerInAreaThink( int progress, int team )
                 }
             }
             WaitFrame()
-            if( progress != harvesterDestoryed+index )
+            if( progress != harvesterDestoryed+teamindex )
             {
-                checkingOOB[index] = false
+                checkingOOB[teamindex] = false
                 return
             }
         }
@@ -302,13 +304,16 @@ void function PlayerInAreaWarning( entity player, vector center, float radius )
 {
     if( IsValid( player ) )
     {
-        SendHudMessage( player, "已超出戰鬥區域，3秒内未返回將被處死", -1, 0.4, 255, 255, 0, 255, 0, 2, 0 )
+        SendHudMessage( player, "已超出戰鬥區域，3秒内未返回將被處死", -1, 0.4, 255, 69, 0, 255, 0, 2, 0 )
     }
     wait 3
     if( IsValid( player ) )
     {
         if( IsPlayerInArea( player, center, radius ) )
-            player.Die()
+        {
+            if( IsAlive(player) )
+                player.Die()
+        }
     }
     OOBplayers.removebyvalue( player.GetUID() )
 }
