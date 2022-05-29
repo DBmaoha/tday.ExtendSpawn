@@ -37,8 +37,8 @@ void function OnPlaying()
 {
 	Hack_MapInit()
 
-	UpdateBTHealth()
-	foreach( entity soldier in GetNPCArrayOfTeam(TEAM_IMC) )
+	//UpdateBTHealth()
+	foreach( entity soldier in GetNPCArray() )
 	{
 		if( IsValid(soldier) )
 			soldier.Destroy()
@@ -56,7 +56,7 @@ void function OnPlayerRespawned( entity player )
 
 void function OnClientConnected( entity player )
 {
-	UpdateBTHealth()
+	//UpdateBTHealth()
 }
 
 void function OnPlayerKilled( entity victim, entity attacker, var damageInfo )
