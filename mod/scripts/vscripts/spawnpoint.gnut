@@ -70,6 +70,8 @@ const array<vector> IMC_NODE_4 = [< -1109.69, 14125, 2592.03 >]
 const float IMC_NODE_RADIUS_4 = 1000 
 
 
+
+
 const vector BATTLE_AREA_1 = < 1647.32, -13920.4, 406.377 >
 const float BATTLE_RADIUS_1 = 1500
 const vector BATTLE_AREA_2 = < 1565.06, -4090.02, 280.586 >
@@ -304,9 +306,9 @@ void function PlayerInAreaWarning( entity player, vector center, float radius )
 {
     if( IsValid( player ) )
     {
-        SendHudMessage( player, "已超出戰鬥區域，3秒内未返回將被處死", -1, 0.4, 255, 69, 0, 255, 0, 2, 0 )
+        SendHudMessage( player, "已超出戰鬥區域，5秒内未返回將被處死", -1, 0.4, 255, 69, 0, 255, 0, 2, 0 )
     }
-    wait 3
+    wait 5
     if( IsValid( player ) )
     {
         if( IsPlayerInArea( player, center, radius ) )
