@@ -12,7 +12,7 @@ void function CreateGamemodePFW()
 {
 	GameMode_Create( GAMEMODE_PFW )
 	GameMode_SetName( GAMEMODE_PFW, "鉄馭邊境戰爭" )
-	GameMode_SetDesc( GAMEMODE_PFW, "摧毀或防守采集機。進攻方得四分勝，防守方于時間結束時獲勝" )
+	GameMode_SetDesc( GAMEMODE_PFW, "摧毀或防守采集機。進攻方得四分勝，防守方於時間結束時獲勝" )
 	GameMode_SetIcon( GAMEMODE_PFW, $"ui/menu/playlist/lts" )
 	GameMode_SetDefaultScoreLimits( GAMEMODE_PFW, 1, 0 )
 	GameMode_SetDefaultTimeLimits( GAMEMODE_PFW, 15, 0.0 )
