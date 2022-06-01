@@ -1,14 +1,13 @@
 untyped
 global function GamemodePFW_Init
 
-const SQUADS_PER_TEAM_MLT = 4
-const SQUADS_PER_TEAM_IMC = 3
+const SQUADS_PER_TEAM = 4
 
 global int harvesterDestoryed = 0
 global bool elevatorReached = false
 global bool destroyedNPCmlt = false
 global bool destroyedNPCimc = false
-table< int, vector > harvesterpos = { [0] = Vector(1538.4, -5492.91, 288.031), [1] = Vector(-4197.01, 2755.03, 224.031), [2] = Vector(-13371, 10409.8, 2347.54), [3] = Vector(316.667, 13862.8, 2636.03) }
+table< int, vector > harvesterpos = { [0] = Vector(1538.4, -5492.91, 288.031), [1] = Vector(-1948.26, 2050.77, 224.031), [2] = Vector(-13411.7, 10524.7, 2331.39), [3] = Vector(-2043.77, 13798.8, 2588.03) }
 
 void function GamemodePFW_Init()
 {
@@ -94,6 +93,7 @@ void function SpawnIntroBatch_MLT()
 
 	thread Spawner_MLT( TEAM_MILITIA )
 	thread SpawnerWeapons( TEAM_MILITIA )
+	thread SpawnerTitans( TEAM_MILITIA )
 }
 
 void function SpawnIntroBatch_IMC()
@@ -105,6 +105,7 @@ void function SpawnIntroBatch_IMC()
 
 	thread Spawner_IMC( TEAM_IMC )
 	thread SpawnerWeapons( TEAM_IMC )
+	thread SpawnerTitans( TEAM_IMC )
 	thread UpdateHarvesterHealth()
 }
 
@@ -118,33 +119,33 @@ void function Spawner_MLT( int team )
 	{
 		if( !(harvesterDestoryed == 4) )
 		{
-			// TODO: this should possibly not count scripted npc spawns, probably only the ones spawned by this script
-			array<entity> npcs = GetNPCArrayOfTeam( team )
-			int count = npcs.len()
-
-			// NORMAL SPAWNS
-			if ( count < SQUADS_PER_TEAM_MLT * 4 - 2 )
-			{
-				Point node = DroppodSpawnArea( harvesterDestoryed, team )
-				waitthread AiGameModes_SpawnDropPod( node.origin, node.angles, team, "npc_soldier", SquadHandler )
-			}
-
-			if( elevatorReached && !destroyedNPCmlt ) //Elevator point, we need destroy npcs
-			{
-				array<entity> soldiers = GetNPCArrayOfTeam( TEAM_MILITIA )
-				foreach( entity soldier in soldiers )
-				{
-					if( IsValid(soldier) )
-						soldier.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
-				}
-				destroyedNPCmlt = true
-			}
-
 			if( !checkingOOB[index] )
 			{
 				thread PlayerInAreaThink( team )
 			}
-
+		}
+		else if( harvesterDestoryed >= 2 )
+		{
+			// NORMAL SPAWNS
+			// TODO: this should possibly not count scripted npc spawns, probably only the ones spawned by this script
+			array<entity> npcs = GetNPCArrayOfTeam( team )
+			int count = npcs.len()
+			if ( count < SQUADS_PER_TEAM * 4 - 2 )
+			{
+				Point node = DroppodSpawnArea( harvesterDestoryed, team )
+				waitthread AiGameModes_SpawnDropPod( node.origin, node.angles, team, "npc_soldier", SquadHandler )
+			}
+		}
+		if( elevatorReached && !destroyedNPCmlt ) //Elevator point, we need destroy npcs
+		{
+			array<entity> soldiers = GetNPCArrayOfTeam( TEAM_MILITIA )
+			foreach( entity soldier in soldiers )
+			{
+				if( IsValid(soldier) )
+					soldier.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
+			}
+			destroyedNPCmlt = true
+			printt( "MLT NPCs destroyed" )
 		}
 		else
 			break
@@ -161,35 +162,34 @@ void function Spawner_IMC( int team )
 	{
 		if( !(harvesterDestoryed == 4) )
 		{
-			// TODO: this should possibly not count scripted npc spawns, probably only the ones spawned by this script
-			array<entity> npcs = GetNPCArrayOfTeam( team )
-			int count = npcs.len()
-
-			// NORMAL SPAWNS
-			if ( count < SQUADS_PER_TEAM_IMC * 4 - 2 )
-			{
-				Point node = DroppodSpawnArea( harvesterDestoryed, team )
-				waitthread AiGameModes_SpawnDropPod( node.origin, node.angles, team, "npc_spectre", SquadHandler )
-			}
-
-			if( elevatorReached && !destroyedNPCimc ) //Elevator point, we need destroy npcs
-			{
-				array<entity> soldiers = GetNPCArrayOfTeam( TEAM_IMC )
-				foreach( entity soldier in soldiers )
-				{
-					if( IsValid(soldier) )
-						soldier.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
-				}
-				destroyedNPCimc = true
-			}
-
 			if( !checkingOOB[index] )
 			{
 				thread PlayerInAreaThink( team )
 			}
-
 			thread CheckHarvesterStat()
-
+		}
+		else if( harvesterDestoryed >= 2 )
+		{
+			// NORMAL SPAWNS
+			// TODO: this should possibly not count scripted npc spawns, probably only the ones spawned by this script
+			array<entity> npcs = GetNPCArrayOfTeam( team )
+			int count = npcs.len()
+			if ( count < SQUADS_PER_TEAM * 4 - 2 )
+			{
+				Point node = DroppodSpawnArea( harvesterDestoryed, team )
+				waitthread AiGameModes_SpawnDropPod( node.origin, node.angles, team, "npc_spectre", SquadHandler )
+			}
+		}
+		if( elevatorReached && !destroyedNPCimc ) //Elevator point, we need destroy npcs
+		{
+			array<entity> soldiers = GetNPCArrayOfTeam( TEAM_IMC )
+			foreach( entity soldier in soldiers )
+			{
+				if( IsValid(soldier) )
+					soldier.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
+			}
+			destroyedNPCimc = true
+			printt( "IMC NPCs destroyed" )
 		}
 		else
 			break
@@ -213,12 +213,56 @@ void function SpawnerWeapons( int team )
 					SendHudMessage(player, "正在運送補給艙\n使用补给舱可获得一次泰坦降落机会",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
 			}
 
-			Point node = DroppodSpawnArea( harvesterDestoryed, team )
-			for( int i = 0; i < (GetPlayerArrayOfTeam(team).len()/4)+1; i++ )
+			Point node = CarePackageDropArea( harvesterDestoryed, team )
+			int packagecount = GetPlayerArrayOfTeam(GetOtherTeam(team)).len()/4+1
+			for( int i = 0; i < packagecount ; i++ )
 				waitthread AiGameModes_SpawnDropPodToGetWeapons( node.origin, node.angles )
+
 		}
 		else
 			break
+	}
+}
+
+void function SpawnerTitans( int team )
+{
+	while(true)
+	{
+		wait 60
+		int packagecount = GetPlayerArrayOfTeam(GetOtherTeam(team)).len()/4+1
+		Point titannode = DroppodSpawnArea( harvesterDestoryed, team )
+		array<entity> titans = GetNPCArrayByClass( "npc_titan" )
+		int titancount = 0
+		if( harvesterDestoryed < 2 )
+		{
+			foreach( entity titan in titans )
+			{
+				if( titan.GetTeam() == team && !IsPetTitan( titan ) )
+					titancount += 1
+			}
+			for( int i = 0; i < packagecount; i++ )
+			{
+				if ( titancount < packagecount )
+				{
+					titannode = DroppodSpawnArea( harvesterDestoryed, team )
+					waitthread AiGameModes_SpawnTitanRandom( titannode.origin, titannode.angles, team, TitanHandler )
+				}
+			}
+		}
+		if( harvesterDestoryed >= 2 )
+		{
+			array<entity> titans = GetNPCArrayByClass( "npc_titan" )
+			foreach( entity titan in titans )
+			{
+				if( titan.GetTeam() == team || !IsPetTitan( titan ) )
+				{
+					if( IsValid(titan) )
+						titan.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
+				}
+			}
+			printt( "Titans destroyed, gonna break" )
+			break
+		}
 	}
 }
 
@@ -300,7 +344,13 @@ void function CheckHarvesterStat()
 	while(true)
 	{
 		if( IsValid(fd_harvester.harvester) )
+		{
+			
+			fd_harvester.harvester.SetMaxHealth( HarvesterHealth() )
+			fd_harvester.harvester.SetHealth( HarvesterHealth() * GetHealthFrac( fd_harvester.harvester ) )
+			fd_harvester.harvester.SetShieldHealthMax( int(HarvesterHealth()*0.5) )
 			return
+		}
 		if( harvesterDestoryed == 4 )
 		{
 			OlaTakeOff()
@@ -318,14 +368,15 @@ void function CheckHarvesterStat()
 			if( harvesterDestoryed == 2 )
 				elevatorReached = true
 			if( !(harvesterDestoryed == 4) )
+			{
 				AiGameModes_SpawnHarvester( harvesterpos[harvesterDestoryed], TEAM_IMC )
-			thread HarvesterThink()
-			thread HarvesterAlarm()
+				thread HarvesterThink()
+				thread HarvesterAlarm()
+			}
 			foreach( entity player in GetPlayerArrayOfTeam( TEAM_IMC ) )
 			{
 				ClientCommand( player, "script_client AnnouncementMessage( GetLocalClientPlayer(), \"采集機已被摧毀\", \"出生點已後撤，保持防禦\" )" )
 			}
-			initialplayercount = GetPlayerArray().len()
 			return
 		}
 		WaitFrame()
@@ -371,20 +422,6 @@ void function SquadHandler( string squad )
 			thread AITdm_CleanupBoredNPCThread( guy )
 		}
 
-		foreach ( titan in titans )
-		{
-			if( IsPetTitan(titan) )
-				continue
-			titan.AssaultPoint( point )
-			titan.AssaultSetGoalRadius( 1000 )
-
-			// show on enemy radar
-			foreach ( player in players )
-				titan.Minimap_AlwaysShow( 0, player )
-
-			thread AITdm_CleanupBoredNPCThread( titan )
-		}
-
 		// Every 15 secs change AssaultPoint
 		while ( true )
 		{
@@ -405,19 +442,6 @@ void function SquadHandler( string squad )
 				}
 			}
 
-			foreach ( titan in titans )
-			{
-				if( IsPetTitan(titan) )
-					continue
-				if( titan.GetTeam() == TEAM_MILITIA )
-					titan.AssaultPoint( point_mlt )
-				else
-				{
-					titan.AssaultPoint( point_imc )
-					titan.AssaultSetGoalRadius( 4000 )
-				}
-			}
-
 			wait 15
 		}
 	}
@@ -425,6 +449,61 @@ void function SquadHandler( string squad )
 	{
 		printt( "Squad doesn't exist or has been killed off" )
 	}
+}
+
+void function TitanHandler( entity titan )
+{
+	vector point
+
+	vector point_mlt
+	vector point_imc
+
+	point = harvesterpos[ harvesterDestoryed ]
+
+	array<entity> players = GetPlayerArrayOfEnemies( titan.GetTeam() )
+
+	try
+	{
+		//Setup Titan
+		if( IsPetTitan(titan) )
+			return
+		titan.EnableNPCFlag( NPC_ALLOW_INVESTIGATE | NPC_ALLOW_HAND_SIGNALS | NPC_ALLOW_FLEE )
+		titan.DisableNPCFlag( NPC_ALLOW_PATROL )
+		titan.AssaultPoint( point )
+		titan.AssaultSetGoalRadius( 2500 )
+
+		foreach ( player in players )
+			titan.Minimap_AlwaysShow( 0, player )
+
+		thread AITdm_CleanupBoredNPCThread( titan )
+
+		while( true )
+		{
+			point_mlt = harvesterpos[ harvesterDestoryed ]
+			Point imchandler = DroppodSpawnArea( harvesterDestoryed, TEAM_MILITIA )
+			point_imc = imchandler.origin
+
+			if( IsPetTitan(titan) )
+				continue
+			if( titan.GetTeam() == TEAM_MILITIA )
+			{
+				titan.AssaultPoint( point_mlt )
+				titan.AssaultSetGoalRadius( 1000 )
+			}
+			else
+			{
+				titan.AssaultPoint( point_imc )
+				titan.AssaultSetGoalRadius( 4000 )
+			}
+
+			wait 15
+		}
+	}
+	catch(ex)
+	{
+		printt( "Titan doesn't exist or has been killed off" )
+	}
+	
 }
 
 void function AITdm_CleanupBoredNPCThread( entity guy )
