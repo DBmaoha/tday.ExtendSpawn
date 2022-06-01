@@ -5,6 +5,7 @@ global function tday_SpawnPoints_Init
 
 global function PlayerSpawnArea
 global function DroppodSpawnArea
+global function CarePackageDropArea
 global function PlayerInAreaThink
 
 array<string> OOBplayers = []
@@ -19,17 +20,17 @@ const float MLT_RADIUS_2 = 1500
 const vector MLT_ANGLES_2 = < 0, -90, 0 >
 
 const vector MLT_SPAWN_3 = < -5231.85, 7190.73, 1952.03 >
-const float MLT_RADIUS_3 = 1000
-const vector MLT_ANGLES_3 = < 0, -225, 0 >
+const float MLT_RADIUS_3 = 800
+const vector MLT_ANGLES_3 = < 0, 15, 0 >
 
-const vector MLT_SPAWN_4 = < -6700.73, 14190.4, 2592.03 >
-const float MLT_RADIUS_4 = 130
-const vector MLT_ANGLES_4 = < 0, 90, 0 >
+const vector MLT_SPAWN_4 = < -12131.8, 10616.3, 2404.4 >
+const float MLT_RADIUS_4 = 500
+const vector MLT_ANGLES_4 = < 0, 0, 0 >
 
 
-const vector IMC_SPAWN_1 = < 740.183, -2564.81, 224.031 >  
-const float IMC_RADIUS_1 = 320
-const vector IMC_ANGLES_1 = < 0, 0, 0 >
+const vector IMC_SPAWN_1 = < 168.278, 198.896, 224.031 >  
+const float IMC_RADIUS_1 = 250
+const vector IMC_ANGLES_1 = < 0, -75, 0 >
 
 const vector IMC_SPAWN_2 = < -6961.04, 2742.9, 224.031 >
 const float IMC_RADIUS_2 = 100
@@ -37,7 +38,7 @@ const vector IMC_ANGLES_2 = < 0, 0, 0 >
 
 const vector IMC_SPAWN_3 = < -10759.5, 14665.7, 2848.03 >
 const float IMC_RADIUS_3 = 800
-const vector IMC_ANGLES_3 = < 0, 90, 0 >
+const vector IMC_ANGLES_3 = < 0, 0, 0 >
 
 const vector IMC_SPAWN_4 = < 3364.24, 14146.2, 2214.58 >
 const float IMC_RADIUS_4 = 400
@@ -47,8 +48,8 @@ const vector IMC_ANGLES_4 = < 0, 180, 0 >
 const array<vector> MLT_NODE_1 = [< 1648.31, -10298.8, 234.171 >]
 const float MLT_NODE_RADIUS_1 = 1500 
 
-const array<vector> MLT_NODE_2 = [< -854.07, 2380.8, 208.031 >, < 372.274, 1270.64, 208.031 >]
-const float MLT_NODE_RADIUS_2 = 200 
+const array<vector> MLT_NODE_2 = [< 1637.7, -1721.65, 160.031 >, < 1213.51, -143.61, 160.031 >]
+const float MLT_NODE_RADIUS_2 = 100 
 
 const array<vector> MLT_NODE_3 = [< -8598.01, 8014.38, 2351.88 >]
 const float MLT_NODE_RADIUS_3 = 1500 
@@ -58,10 +59,10 @@ const float MLT_NODE_RADIUS_4 = 800
 
 
 const array<vector> IMC_NODE_1 = [< 1637.7, -1721.65, 160.031 >, < 1213.51, -143.61, 160.031 >]
-const float IMC_NODE_RADIUS_1 = 200 
+const float IMC_NODE_RADIUS_1 = 100 
 
-const array<vector> IMC_NODE_2 = [< -3776.72, 3679.68, 208.031 >, < -2189.72, 3261.42, 208.031 >]
-const float IMC_NODE_RADIUS_2 = 200
+const array<vector> IMC_NODE_2 = [< -4043.83, 3491.55, 208.031 >, < -1754.84, 2826.6, 224.031 >]
+const float IMC_NODE_RADIUS_2 = 50
 
 const array<vector> IMC_NODE_3 = [< -12043.1, 10687.8, 2566.97 >]
 const float IMC_NODE_RADIUS_3 = 1200 
@@ -70,18 +71,31 @@ const array<vector> IMC_NODE_4 = [< -1109.69, 14125, 2592.03 >]
 const float IMC_NODE_RADIUS_4 = 1000 
 
 
+const vector BATTLE_AREA_MLT_1 = < 1647.32, -13920.4, 406.377 >
+const float BATTLE_RADIUS_MLT_1 = 2000
+
+const vector BATTLE_AREA_MLT_2 = < 1459.02, -3053.39, 232.031 >
+const float BATTLE_RADIUS_MLT_2 = 1500
+
+const vector BATTLE_AREA_MLT_3 = < -5231.85, 7190.73, 1952.03 >
+const float BATTLE_RADIUS_MLT_3 = 1500
+
+const vector BATTLE_AREA_MLT_4 = < -12131.8, 10616.3, 2404.4 >
+const float BATTLE_RADIUS_MLT_4 = 3000
 
 
-const vector BATTLE_AREA_1 = < 1647.32, -13920.4, 406.377 >
-const float BATTLE_RADIUS_1 = 1500
-const vector BATTLE_AREA_2 = < 1565.06, -4090.02, 280.586 >
-const float BATTLE_RADIUS_2 = 1000
-const vector BATTLE_AREA_3 = < -6365.34, 2720.75, 224.031 >
-const float BATTLE_RADIUS_3 = 1500
-const vector BATTLE_AREA_4 = < -12597.6, 15228.6, 2544.03 >
-const float BATTLE_RADIUS_4 = 2000
-const vector BATTLE_AREA_5 = < 3186.82, 14227.1, 2214.58 >
-const float BATTLE_RADIUS_5 = 1500
+const vector BATTLE_AREA_IMC_1 = < 1562.49, -3053.06, 232.031 >
+const float BATTLE_RADIUS_IMC_1 = 2000
+
+const vector BATTLE_AREA_IMC_2 = < -6961.04, 2742.9, 224.031 >
+const float BATTLE_RADIUS_IMC_2 = 5000
+
+const vector BATTLE_AREA_IMC_3 = < -10759.5, 14665.7, 2848.03 >
+const float BATTLE_RADIUS_IMC_3 = 3000
+
+const vector BATTLE_AREA_IMC_4 = < 2398.45, 14228.2, 2536.03 >
+const float BATTLE_RADIUS_IMC_4 = 4000
+
 
 #endif
 
@@ -104,7 +118,7 @@ Point function PlayerSpawnArea( int progress, int team )
             case 2:
                 return SearchHotDropPointFromArea( MLT_SPAWN_3, MLT_RADIUS_3, MLT_ANGLES_3 )
             case 3:
-                return SearchPointFromArea( MLT_SPAWN_4, MLT_RADIUS_4, MLT_ANGLES_4 )
+                return SearchHotDropPointFromArea( MLT_SPAWN_4, MLT_RADIUS_4, MLT_ANGLES_4 )
         }
     }
     if( team == TEAM_IMC ) 
@@ -172,7 +186,126 @@ Point function DroppodSpawnArea( int progress, int team )
         }
     }
 
-    return SearchPointFromArea( < 1648.31, -10298.8, 234.171 >, 1500, < 0,0,0 > )
+    return SearchHotDropPointFromArea( < 1648.31, -10298.8, 234.171 >, 1500, < 0,0,0 > )
+}
+
+Point function CarePackageDropArea( int progress, int team )
+{
+    array<Point> nodes
+    if( team == TEAM_MILITIA )
+    {
+        switch( progress )
+        {
+            case 0:
+                return SearchHotDropPointFromArea( MLT_SPAWN_1, MLT_RADIUS_1, MLT_ANGLES_1 )
+            case 1:
+                return SearchHotDropPointFromArea( MLT_SPAWN_2, MLT_RADIUS_2, MLT_ANGLES_2 )
+            case 2:
+                return SearchHotDropPointFromArea( MLT_SPAWN_3, MLT_RADIUS_3, MLT_ANGLES_3 )
+            case 3:
+                return SearchHotDropPointFromArea( MLT_SPAWN_4, MLT_RADIUS_4, MLT_ANGLES_4 )
+        }
+    }
+    if( team == TEAM_IMC ) 
+    {
+        switch( progress )
+        {
+            case 0:
+                foreach( vector nodepoint in IMC_NODE_1 )
+                    nodes.append( SearchHotDropPointFromArea( nodepoint, IMC_NODE_RADIUS_1, IMC_ANGLES_1 ) )
+                return nodes[ RandomInt( nodes.len() ) ]
+            case 1:
+                return SearchHotDropPointFromArea( < -4043.83, 3491.55, 208.031 >, IMC_NODE_RADIUS_2, IMC_ANGLES_2 )
+            case 2:
+                return SearchHotDropPointFromArea( IMC_SPAWN_3, IMC_RADIUS_3, IMC_ANGLES_3 )
+            case 3:
+                return SearchHotDropPointFromArea( < 973.476, 14140.6, 2592.03 >, 900, IMC_ANGLES_4 )
+        }
+    }
+
+    return SearchHotDropPointFromArea( < 1648.31, -10298.8, 234.171 >, 1500, < 0,0,0 > )
+}
+
+void function PlayerInAreaThink( int team )
+{
+    int teamindex = team == TEAM_MILITIA ? 0 : 1
+    float radius
+    vector center
+    int curprogress = harvesterDestoryed
+
+    if( team == TEAM_MILITIA )
+    {
+        switch( curprogress )
+        {
+            case 0:
+                radius = BATTLE_RADIUS_MLT_1
+                center = BATTLE_AREA_MLT_1
+                break
+            case 1:
+                radius = BATTLE_RADIUS_MLT_2
+                center = BATTLE_AREA_MLT_2
+                break
+            case 2:
+                radius = BATTLE_RADIUS_MLT_3
+                center = BATTLE_AREA_MLT_3
+                break
+            case 3:
+                radius = BATTLE_RADIUS_MLT_4
+                center = BATTLE_AREA_MLT_4
+                break
+        }
+    }
+    if( team == TEAM_IMC )
+    {
+        switch( curprogress )
+        {
+            case 0:
+                radius = BATTLE_RADIUS_IMC_1
+                center = BATTLE_AREA_IMC_1
+                break
+            case 1:
+                radius = BATTLE_RADIUS_IMC_2
+                center = BATTLE_AREA_IMC_2
+                break
+            case 2:
+                radius = BATTLE_RADIUS_IMC_3
+                center = BATTLE_AREA_IMC_3
+                break
+            case 3:
+                radius = BATTLE_RADIUS_IMC_4
+                center = BATTLE_AREA_IMC_4
+                break
+        }
+    }
+
+    if( !checkingOOB[teamindex] )
+    {
+        checkingOOB[teamindex] = true
+        while( true )
+        {
+            foreach( entity player in GetPlayerArrayOfTeam( GetOtherTeam( team ) ) )
+            {
+                if( IsPlayerInArea( player, center, radius ) && !OOBplayers.contains( player.GetUID() ) )
+                {
+                    thread PlayerInAreaWarning( player, center, radius )
+                    OOBplayers.append( player.GetUID() )
+                }
+            }
+            foreach( entity player in GetPlayerArrayOfTeam( team ) )
+            {
+                if( IsPlayerInArea( player, center, radius ) )
+                {
+                    thread PlayerInAreaRegenShield( player, center, radius )
+                }
+            }
+            WaitFrame()
+            if( curprogress != harvesterDestoryed )
+            {
+                checkingOOB[teamindex] = false
+                return
+            }
+        }
+    }
 }
 
 Point function SearchHotDropPointFromArea( vector center, float radius, vector angles )
@@ -203,66 +336,6 @@ Point function SearchPointFromArea( vector center, float radius, vector angles )
     return point
 }
 
-void function PlayerInAreaThink( int team )
-{
-    int teamindex = team == TEAM_MILITIA ? 0 : 1
-    int progressindex = team == TEAM_IMC ? 0 : 1
-    float radius
-    vector center
-    int progress = harvesterDestoryed
-    switch( progress+progressindex )
-    {
-        case 0:
-            radius = BATTLE_RADIUS_1
-            center = BATTLE_AREA_1
-            break
-        case 1:
-            radius = BATTLE_RADIUS_2
-            center = BATTLE_AREA_2
-            break
-        case 2:
-            radius = BATTLE_RADIUS_3
-            center = BATTLE_AREA_3
-            break
-        case 3:
-            radius = BATTLE_RADIUS_4
-            center = BATTLE_AREA_4
-            break
-        case 4:
-            radius = BATTLE_RADIUS_5
-            center = BATTLE_AREA_5
-            break
-    }
-    if( !checkingOOB[teamindex] )
-    {
-        checkingOOB[teamindex] = true
-        while( true )
-        {
-            foreach( entity player in GetPlayerArrayOfTeam( team ) )
-            {
-                if( IsPlayerInArea( player, center, radius ) && !OOBplayers.contains( player.GetUID() ) )
-                {
-                    thread PlayerInAreaWarning( player, center, radius )
-                    OOBplayers.append( player.GetUID() )
-                }
-            }
-            foreach( entity player in GetPlayerArrayOfTeam( GetOtherTeam( team ) ) )
-            {
-                if( IsPlayerInArea( player, center, radius ) )
-                {
-                    thread PlayerInAreaRegenShield( player, center, radius )
-                }
-            }
-            WaitFrame()
-            if( progress != harvesterDestoryed+teamindex )
-            {
-                checkingOOB[teamindex] = false
-                return
-            }
-        }
-    }
-}
-
 void function PlayerInAreaRegenShield( entity player, vector center, float radius )
 {
     float shieldRegenStartDelay = 5.0
@@ -272,32 +345,32 @@ void function PlayerInAreaRegenShield( entity player, vector center, float radiu
         wait 1
 
         if ( !IsAlive( player ) )
-            continue
+            return
 
         if ( !IsPilot( player ) )
-            continue
+            return
 
         if( !IsPlayerInArea( player, center, radius ) )
-            continue
+            return
 
         float shieldRegenRate = 25    // health regen per tick
 
         if ( player.GetHealth() != player.GetMaxHealth() )
-            continue
+            return
 
         if ( player.GetShieldHealth() == player.GetShieldHealthMax() )
-            continue
+            return
 
         if ( Time() - player.p.lastDamageTime < shieldRegenStartDelay )
         {
-            continue
+            return
         }
 
         SendHudMessage( player, "正在回復護盾", -1, 0.4, 135, 206, 235, 255, 0, 1, 0 )
         player.SetShieldHealth( min( player.GetShieldHealthMax(), player.GetShieldHealth() + shieldRegenRate ) )
         if ( player.GetShieldHealth() == player.GetShieldHealthMax() )
         {
-            SendHudMessage( player, "護盾已充能完畢(100點)", -1, 0.4, 135, 206, 235, 255, 0.15, 2, 0 )
+            SendHudMessage( player, "護盾已充能完畢", -1, 0.4, 135, 206, 235, 255, 0.15, 2, 0 )
         }
     }
 }
@@ -306,9 +379,9 @@ void function PlayerInAreaWarning( entity player, vector center, float radius )
 {
     if( IsValid( player ) )
     {
-        SendHudMessage( player, "已超出戰鬥區域，5秒内未返回將被處死", -1, 0.4, 255, 69, 0, 255, 0, 2, 0 )
+        SendHudMessage( player, "已超出戰鬥區域，3秒内未返回將被處死", -1, 0.4, 255, 69, 0, 255, 0, 2, 0 )
     }
-    wait 5
+    wait 3
     if( IsValid( player ) )
     {
         if( IsPlayerInArea( player, center, radius ) )
