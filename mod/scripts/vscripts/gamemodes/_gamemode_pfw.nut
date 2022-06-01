@@ -73,7 +73,7 @@ void function OnPlayerKilled_Threaded( entity player )
 	}
 	if( player.GetTeam() == TEAM_IMC )
 	{
-		wait 8
+		wait 10
 		if( IsValid(player) )
 			ForceRespawnPlayerInArea( player )
 	}
@@ -166,7 +166,6 @@ void function Spawner_IMC( int team )
 			{
 				thread PlayerInAreaThink( team )
 			}
-			thread CheckHarvesterStat()
 		}
 		else if( harvesterDestoryed >= 2 )
 		{
@@ -191,6 +190,7 @@ void function Spawner_IMC( int team )
 			destroyedNPCimc = true
 			printt( "IMC NPCs destroyed" )
 		}
+		thread CheckHarvesterStat()
 		else
 			break
 		WaitFrame()

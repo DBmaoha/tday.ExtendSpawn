@@ -15,7 +15,7 @@ playlists
 				scorelimit 4
 				max_players 32
 				timelimit 30
-				respawn_delay 8
+				respawn_delay 10
 				riff_allow_npcs 1
 				color		"88 220 151 255"
 
