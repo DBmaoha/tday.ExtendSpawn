@@ -188,7 +188,7 @@ void function AiGameModes_SpawnTitan( vector pos, vector rot, int team, string s
 		thread titanHandler( titan )
 }
 
-entity function AiGameModes_SpawnTitanRandom( vector pos, vector rot, int team, void functionref( entity titan ) titanHandler = null )
+entity function AiGameModes_SpawnTitanRandom( vector pos, vector ang, int team, void functionref( entity titan ) titanHandler = null )
 {
 	int randomindex = RandomInt( 7 )
 	string setfile = ""
@@ -229,7 +229,7 @@ entity function AiGameModes_SpawnTitanRandom( vector pos, vector rot, int team, 
 	    Remote_CallFunction_Replay( player, "ServerCallback_ReplacementTitanSpawnpoint", pos.x, pos.y, pos.z, Time() + 5 )
 	}
 	//string squadName = MakeSquadName( team, UniqueString( "ZiplineTable" ) )
-	entity titan = CreateNPC( "npc_titan", team, pos, rot )
+	entity titan = CreateNPC( "npc_titan", team, pos, ang )
 	SetSpawnOption_AISettings( titan, aiset )
 	//SetSpawnOption_Titanfall( titan )
 	//SetSpawnOption_Warpfall( titan )
@@ -906,5 +906,5 @@ void function HarvesterAlarm()
 
 int function HarvesterHealth()
 {
-    return initialplayercount * 2000
+    return initialplayercount * 5000
 }
