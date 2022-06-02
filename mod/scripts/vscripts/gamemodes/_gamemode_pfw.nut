@@ -582,14 +582,17 @@ void function AITdm_CleanupBoredNPCThread( entity guy )
 
 void function TeleportBoredPetTitanThread( entity titan )
 {
-	if( !IsPetTitan(titan) )
-		return
 	titan.EndSignal( "OnDestroy" )
 	wait 10.0 // cover spawning time from bubbleshield before we start teleporting
 
 	int cleanupFailures = 0 // when this hits 2, teleport the titan
 	while ( cleanupFailures < 2 )
 	{
+		if( titan.IsPlayer() )
+			return
+		if( !IsPetTitan(titan) )
+			return
+
 		wait 5.0
 
 		if ( titan.GetParent() != null )
