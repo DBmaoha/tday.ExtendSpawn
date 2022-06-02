@@ -23,6 +23,7 @@ void function GamemodePFW_Init()
 	AddCallback_OnClientConnected( OnClientConnected )
 	AddCallback_OnPlayerKilled( OnPlayerKilled )
 	AddSpawnCallback( "npc_soldier", SoldierConfig )
+	AddSpawnCallback( "npc_titan", TitanConfig )
 
 	AiGameModes_SetGruntWeapons( [ "mp_weapon_car", "mp_weapon_vinson", "mp_weapon_sniper" ] )
 	AiGameModes_SetSpectreWeapons( [ "mp_weapon_mastiff", "mp_weapon_doubletake", "mp_weapon_hemlok_smg" ] )
@@ -85,6 +86,11 @@ void function SoldierConfig( entity soldier )
 	soldier.SetHealth(100)
 }
 
+void function TitanConfig( entity soldier )
+{
+	thread TeleportBoredPetTitanThread( soldier )
+}
+
 //------------------------------------------------------
 
 void function SpawnIntroBatch_MLT()
@@ -117,6 +123,7 @@ void function Spawner_MLT( int team )
 
 	while( true )
 	{
+		int packagecount = GetPlayerArrayOfTeam(GetOtherTeam(team)).len()/4+1
 		if( !(harvesterDestoryed == 4) )
 		{
 			if( !checkingOOB[index] )
@@ -124,13 +131,13 @@ void function Spawner_MLT( int team )
 				thread PlayerInAreaThink( team )
 			}
 		}
-		else if( harvesterDestoryed >= 2 )
+		if( harvesterDestoryed >= 2 )
 		{
 			// NORMAL SPAWNS
 			// TODO: this should possibly not count scripted npc spawns, probably only the ones spawned by this script
 			array<entity> npcs = GetNPCArrayOfTeam( team )
 			int count = npcs.len()
-			if ( count < SQUADS_PER_TEAM * 4 - 2 )
+			if ( count < packagecount * 4 - 2 )
 			{
 				Point node = DroppodSpawnArea( harvesterDestoryed, team )
 				waitthread AiGameModes_SpawnDropPod( node.origin, node.angles, team, "npc_soldier", SquadHandler )
@@ -141,13 +148,13 @@ void function Spawner_MLT( int team )
 			array<entity> soldiers = GetNPCArrayOfTeam( TEAM_MILITIA )
 			foreach( entity soldier in soldiers )
 			{
-				if( IsValid(soldier) )
+				if( soldier.IsTitan() && !IsPetTitan(soldier) )
 					soldier.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
 			}
 			destroyedNPCmlt = true
 			printt( "MLT NPCs destroyed" )
 		}
-		else
+		if( harvesterDestoryed == 4 )
 			break
 		WaitFrame()
 	}
@@ -160,6 +167,8 @@ void function Spawner_IMC( int team )
 
 	while( true )
 	{
+		int packagecount = GetPlayerArrayOfTeam(GetOtherTeam(team)).len()/4+1
+		thread CheckHarvesterStat()
 		if( !(harvesterDestoryed == 4) )
 		{
 			if( !checkingOOB[index] )
@@ -167,13 +176,13 @@ void function Spawner_IMC( int team )
 				thread PlayerInAreaThink( team )
 			}
 		}
-		else if( harvesterDestoryed >= 2 )
+		if( harvesterDestoryed >= 2 )
 		{
 			// NORMAL SPAWNS
 			// TODO: this should possibly not count scripted npc spawns, probably only the ones spawned by this script
 			array<entity> npcs = GetNPCArrayOfTeam( team )
 			int count = npcs.len()
-			if ( count < SQUADS_PER_TEAM * 4 - 2 )
+			if ( count < packagecount * 4 - 2 )
 			{
 				Point node = DroppodSpawnArea( harvesterDestoryed, team )
 				waitthread AiGameModes_SpawnDropPod( node.origin, node.angles, team, "npc_spectre", SquadHandler )
@@ -184,14 +193,13 @@ void function Spawner_IMC( int team )
 			array<entity> soldiers = GetNPCArrayOfTeam( TEAM_IMC )
 			foreach( entity soldier in soldiers )
 			{
-				if( IsValid(soldier) )
+				if( soldier.IsTitan() && !IsPetTitan(soldier) )
 					soldier.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
 			}
 			destroyedNPCimc = true
 			printt( "IMC NPCs destroyed" )
 		}
-		thread CheckHarvesterStat()
-		else
+		if( harvesterDestoryed == 4 )
 			break
 		WaitFrame()
 	}
@@ -254,7 +262,7 @@ void function SpawnerTitans( int team )
 			array<entity> titans = GetNPCArrayByClass( "npc_titan" )
 			foreach( entity titan in titans )
 			{
-				if( titan.GetTeam() == team || !IsPetTitan( titan ) )
+				if( titan.GetTeam() == team && !IsPetTitan( titan ) )
 				{
 					if( IsValid(titan) )
 						titan.Dissolve( ENTITY_DISSOLVE_CORE, Vector( 0, 0, 0 ), 500 )
@@ -356,7 +364,7 @@ void function CheckHarvesterStat()
 			OlaTakeOff()
 			return
 		}
-		else if( !IsValid(fd_harvester.harvester) )
+		if( !IsValid(fd_harvester.harvester) )
 		{
 			foreach( entity player in GetPlayerArrayOfTeam( TEAM_MILITIA ) )
 			{
@@ -572,3 +580,51 @@ void function AITdm_CleanupBoredNPCThread( entity guy )
 	guy.Destroy()
 }
 
+void function TeleportBoredPetTitanThread( entity titan )
+{
+	if( !IsPetTitan(titan) )
+		return
+	titan.EndSignal( "OnDestroy" )
+	wait 10.0 // cover spawning time from bubbleshield before we start teleporting
+
+	int cleanupFailures = 0 // when this hits 2, teleport the titan
+	while ( cleanupFailures < 2 )
+	{
+		wait 5.0
+
+		if ( titan.GetParent() != null )
+			continue // never cleanup while spawning
+
+		array<entity> players = GetPlayerArray()
+
+		bool failedChecks = false
+
+		foreach ( entity player in players )
+		{
+			// skip dead people
+			if ( !IsAlive( player ) )
+				continue
+
+			failedChecks = false
+
+			// don't tp if players can see them
+			if ( player.IsPlayer() )
+			{
+				if ( PlayerCanSee( player, titan, true, 135 ) )
+					break
+			}
+
+			failedChecks = true
+		}
+
+		if ( failedChecks )
+			cleanupFailures++
+		else
+			cleanupFailures--
+	}
+
+	Point tplocation = CarePackageDropArea( harvesterDestoryed, titan.GetTeam() )
+	print( "teleporting npt_titan from team " + titan.GetTeam() + ", owner" + titan.GetBossPlayer().GetPlayerName() )
+	titan.SetOrigin( tplocation.origin )
+	SendHudMessage(titan.GetBossPlayer(), "檢測到自動泰坦不在戰場\n已傳送至重生區域",  -1, 0.3, 255, 255, 0, 255, 0.15, 3, 1)
+}
